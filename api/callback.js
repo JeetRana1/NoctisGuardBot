@@ -70,7 +70,8 @@ module.exports = async (req, res) => {
     const token = jwt.sign(payload, secret, { expiresIn: '1h' });
 
     // set secure, httpOnly cookie
-    const cookie = `noctis_auth=${token}; HttpOnly; Path=/; Max-Age=3600; SameSite=Lax; Secure`;
+    // Set cookie to be available after cross-site redirects (Discord -> our callback)
+    const cookie = `noctis_auth=${token}; HttpOnly; Path=/; Max-Age=3600; SameSite=None; Secure`;
     res.setHeader('Set-Cookie', cookie);
 
     // redirect to dashboard

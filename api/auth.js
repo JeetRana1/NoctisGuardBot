@@ -10,7 +10,8 @@ module.exports = (req, res) => {
 
   const state = crypto.randomBytes(12).toString('hex');
   // Set state cookie for CSRF protection
-  res.setHeader('Set-Cookie', `oauth_state=${state}; HttpOnly; Path=/; Max-Age=300; SameSite=Lax`);
+  // Set state cookie so it is sent back on redirect from Discord. Use SameSite=None so cross-site redirects carry it.
+  res.setHeader('Set-Cookie', `oauth_state=${state}; HttpOnly; Path=/; Max-Age=300; SameSite=None; Secure`);
   const redirect = encodeURIComponent(`${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}/api/callback`);
   const scope = 'identify%20guilds';
   const url = `https://discord.com/api/oauth2/authorize?response_type=code&client_id=${clientId}&scope=${scope}&redirect_uri=${redirect}&state=${state}`;
