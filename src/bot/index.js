@@ -40,4 +40,12 @@ for (const file of eventFiles) {
   }
 }
 
-client.login(process.env.DISCORD_TOKEN);
+// Diagnostics: confirm presence of DISCORD_TOKEN and catch login errors
+const hasToken = !!process.env.DISCORD_TOKEN;
+console.log('DISCORD_TOKEN present:', hasToken);
+if (!hasToken) console.error('DISCORD_TOKEN is missing. Set it in environment variables.');
+
+client.login(process.env.DISCORD_TOKEN).catch(err => {
+  console.error('Discord client login failed:', err && err.stack ? err.stack : String(err));
+  // keep process alive so Render logs capture the error; you might want to exit in production
+});
