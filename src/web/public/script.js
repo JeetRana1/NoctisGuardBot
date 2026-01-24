@@ -35,7 +35,7 @@ const API_BASE = window.location.origin;
 const CLIENT_ID = '1463677793761230874';
 function buildOauthUrl() {
   const scope = 'identify%20guilds';
-  const redirect = encodeURIComponent(window.location.origin + '/callback');
+  const redirect = encodeURIComponent(window.location.origin + '/api/callback');
   const state = Math.random().toString(36).slice(2);
   return `https://discord.com/api/oauth2/authorize?response_type=code&client_id=${CLIENT_ID}&scope=${scope}&redirect_uri=${redirect}&state=${state}`;
 }
@@ -53,9 +53,9 @@ document.querySelectorAll('a[href="/dashboard"]').forEach(a => {
   a.href = window.location.origin + a.getAttribute('href');
 });
 
-// Direct auth URLs — one click will open Discord authorize and return to /callback
+// Auth links — hit our serverless auth endpoint so state cookie is set and user is redirected to Discord
 document.querySelectorAll('a[href="/auth"]').forEach(a => {
-  a.href = buildOauthUrl();
+  a.href = '/api/auth';
 });
 
 // Helper to fetch JSON safely and handle non-JSON / errors

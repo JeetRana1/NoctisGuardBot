@@ -1,9 +1,18 @@
 {
   "version": 2,
   "builds": [
+    { "src": "api/**/*.js", "use": "@vercel/node" },
     { "src": "src/web/public/**/*", "use": "@vercel/static" }
   ],
   "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1.js" },
+    { "src": "/auth", "dest": "/api/auth.js" },
+    { "src": "/api/auth", "dest": "/api/auth.js" },
+    { "src": "/api/callback", "dest": "/api/callback.js" },
+    { "src": "/callback", "dest": "/api/callback.js" },
+    { "src": "/api/session", "dest": "/api/session.js" },
+    { "src": "/api/logout", "dest": "/api/logout.js" },
+    { "src": "/dashboard", "dest": "/src/web/public/dashboard/index.html" },
     { "src": "/(.*)", "dest": "/src/web/public/$1" }
   ]
 }

@@ -13,10 +13,23 @@ Local development
 Deploying the static site to Vercel (recommended)
 - If you only need the public website and OAuth redirect to a server you control (or you accept a static OAuth flow), you can deploy the content of `src/web/public` as a static site on Vercel.
 - Project settings: set "Build Output Directory" to `src/web/public` (or use the included `vercel.json` which serves that folder).
-- Add any necessary environment variables in Vercel (e.g. `CLIENT_ID`, `CLIENT_SECRET`) **only** if you convert server endpoints to serverless functions (see below).
+- If you want the OAuth flow to complete on Vercel (so users are taken directly to the dashboard after authorizing), deploy the provided serverless endpoints (the `api/` folder) to Vercel — set `CLIENT_ID`, `CLIENT_SECRET`, and `SESSION_SECRET` in your Vercel Project Environment variables.
 
-Running the full web app on Vercel (advanced)
-- If you want Vercel to handle the OAuth token exchange and session-based routes, you'll need to move the Express endpoints into serverless functions (for example under an `/api` folder) and set `CLIENT_ID` and `CLIENT_SECRET` in your Vercel project environment variables.
+Running the full web app on Vercel (recommended for dashboard)
+- This project now includes serverless handlers for OAuth and session management (`/api/auth`, `/api/callback`, `/api/session`, `/api/logout`). When deployed to Vercel these endpoints will:
+  - `/api/auth` — set state cookie and redirect the user to Discord authorize.
+  - `/api/callback` — exchange the code for tokens, fetch user guilds, set a secure session cookie, then redirect to `/dashboard` (no extra steps required from the user).
+  - `/api/session` — return user + guilds for the dashboard to consume.
+  - `/api/logout` — clears the session cookie and redirects to home.
+
+- Required environment variables (set in Vercel Project Settings):
+  - `CLIENT_ID` — Discord application client id
+  - `CLIENT_SECRET` — Discord application client secret
+  - `SESSION_SECRET` — a long random value used to sign session tokens
+
+- Important: In the Discord Developer Portal → OAuth2 → Redirects, add the following redirect URI (exact match):
+  - `https://<your-domain>/api/callback`  (e.g., `https://noctis-guard.vercel.app/api/callback`)
+
 - Note: Hosting the bot itself on Vercel is not recommended — keep the bot running on a persistent host (VPS, Docker host, or a worker service).
 
 If you want, I can:
