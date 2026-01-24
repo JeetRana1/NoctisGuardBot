@@ -108,7 +108,7 @@
     <h2 class="section-title">Meet the Team</h2>
     <div class="team-grid">
       <div class="team-member card reveal">
-        <img src="https://via.placeholder.com/100" alt="Developer">
+        <img src="/img/placeholder.svg" alt="Developer">
         <h3>Developer</h3>
         <p>Lead Developer & Maintainer</p>
       </div>
@@ -143,10 +143,21 @@
   <script>
     (function(){
       var API_BASE = window.location.origin;
-      var s = document.createElement('script');
-      s.src = API_BASE + '/socket.io/socket.io.js';
-      s.crossOrigin = 'anonymous';
-      document.head.appendChild(s);
+      (async function(){
+        try {
+          const res = await fetch(API_BASE + '/socket.io/socket.io.js', { method: 'HEAD' });
+          if (res.ok) {
+            var s = document.createElement('script');
+            s.src = API_BASE + '/socket.io/socket.io.js';
+            s.crossOrigin = 'anonymous';
+            document.head.appendChild(s);
+          } else {
+            console.info('socket.io endpoint not present, skipping client load');
+          }
+        } catch (e) {
+          console.info('socket.io check failed, skipping client load', e);
+        }
+      })();
     })();
   </script>
   <script src="script.js"></script>
