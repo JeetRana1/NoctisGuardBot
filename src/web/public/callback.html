@@ -37,9 +37,9 @@
 
   async function tryHost(host){
     try {
-      status.textContent = `Attempting to POST to ${host}/callback ...`;
-      log('POST =>', host + '/callback');
-      const res = await fetch(host + '/callback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ code, state, redirectUri: window.location.origin + '/callback' }) });
+      status.textContent = `Attempting to POST to ${host}/api/callback ...`;
+      log('POST =>', host + '/api/callback');
+      const res = await fetch(host + '/api/callback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ code, state, redirectUri: window.location.origin + '/api/callback' }) });
       log('Response status', res.status);
       if (res.ok) {
         const j = await res.json().catch(()=>null);

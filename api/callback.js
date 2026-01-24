@@ -2,7 +2,21 @@ const jwt = require('jsonwebtoken');
 
 module.exports = async (req, res) => {
   try {
-    const { code, state } = req.query || {};
+    // Accept code/state from either query (GET) or JSON body (POST)
+    let code; let state;
+    if (req.method === 'POST') {
+      try {
+        if (typeof req.body === 'string' && req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+          const parsed = JSON.parse(req.body);
+          code = parsed.code; state = parsed.state;
+        } else {
+          code = req.body && req.body.code; state = req.body && req.body.state;
+        }
+      } catch (e) { console.warn('Failed to parse JSON body', e); }
+    } else {
+      code = req.query && req.query.code; state = req.query && req.query.state;
+    }
+
     const clientId = process.env.CLIENT_ID;
     const clientSecret = process.env.CLIENT_SECRET;
     const secret = process.env.SESSION_SECRET || 'replace_this_in_prod';
