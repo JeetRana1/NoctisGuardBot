@@ -1,0 +1,58 @@
+{
+  "1336111006644047964": {
+    "652673920616366140": [
+      {
+        "id": "mkrdrwlo4dvph8",
+        "moderatorId": "474580691225673738",
+        "reason": "test",
+        "timestamp": 1769202980556
+      },
+      {
+        "id": "mkre2d67y9fkmz",
+        "moderatorId": "474580691225673738",
+        "reason": "u being bitch",
+        "timestamp": 1769203468591
+      },
+      {
+        "id": "mkreb5hustfpbo",
+        "moderatorId": "474580691225673738",
+        "reason": "bitch",
+        "timestamp": 1769203878546
+      }
+    ],
+    "474580691225673738": [
+      {
+        "id": "mkrhgtftp8o8mr",
+        "moderatorId": "1463677793761230874",
+        "reason": "Spam detected",
+        "timestamp": 1769209181705
+      },
+      {
+        "id": "mkrhguz1oldp0z",
+        "moderatorId": "1463677793761230874",
+        "reason": "Spam detected",
+        "timestamp": 1769209183693
+      },
+      {
+        "id": "mkrhgv2js3vem6",
+        "moderatorId": "1463677793761230874",
+        "reason": "Spam detected",
+        "timestamp": 1769209183819
+      }
+    ],
+    "930967305754644520": [
+      {
+        "id": "mkribd0f8kp4k9",
+        "moderatorId": "474580691225673738",
+        "reason": "jsbcus",
+        "timestamp": 1769210606751
+      },
+      {
+        "id": "mkrjt8iiuwuq0a",
+        "moderatorId": "474580691225673738",
+        "reason": "3rdh8gf7egfo4",
+        "timestamp": 1769213120346
+      }
+    ]
+  }
+}

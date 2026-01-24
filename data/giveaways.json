@@ -1,0 +1,129 @@
+[
+  {
+    "id": "mkrdh74z82b8",
+    "guildId": "1336111006644047964",
+    "channelId": "1336111006644047968",
+    "prize": "test",
+    "endTimestamp": 1769202510995,
+    "winnerCount": 1,
+    "hostId": "web",
+    "requireRole": null,
+    "ended": true,
+    "messageId": null,
+    "winners": []
+  },
+  {
+    "id": "mkrf7g1mkky4",
+    "guildId": "1336111006644047964",
+    "channelId": "1336111006644047968",
+    "prize": "gta",
+    "endTimestamp": 1769205415210,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1464378291845595298",
+    "winners": [
+      "930967305754644520"
+    ]
+  },
+  {
+    "id": "mkrg0ltm2f6d",
+    "guildId": "1336111006644047964",
+    "channelId": "1336111006644047968",
+    "prize": "gta",
+    "endTimestamp": 1769206775722,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "requireRole": "1336111006644047964",
+    "ended": true,
+    "messageId": "1464383999026790463",
+    "winners": [
+      "930967305754644520"
+    ]
+  },
+  {
+    "id": "mkrg7ngi5otm",
+    "guildId": "1336111006644047964",
+    "channelId": "1336111006644047968",
+    "prize": "1",
+    "endTimestamp": 1769207104434,
+    "winnerCount": 1,
+    "hostId": "930967305754644520",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1464385378084589669",
+    "winners": []
+  },
+  {
+    "id": "mkrgt1odvkpn",
+    "guildId": "1336111006644047964",
+    "channelId": "1336111006644047968",
+    "prize": "rdr2",
+    "endTimestamp": 1769208102637,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1464389563878478040",
+    "winners": [
+      "930967305754644520"
+    ]
+  },
+  {
+    "id": "mkrjmlrtro7z",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "rdr2",
+    "endTimestamp": 1769212870937,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1464409439116202187",
+    "winners": []
+  },
+  {
+    "id": "mkrjmlrwzt4s",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "rdr2",
+    "endTimestamp": 1769212870940,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1464409440743723212",
+    "winners": []
+  },
+  {
+    "id": "mkrjr4n8stpl",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "rdr3",
+    "endTimestamp": 1769213082020,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1464410324412399666",
+    "winners": [
+      "930967305754644520"
+    ]
+  },
+  {
+    "id": "mkrnae81fist",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "gta",
+    "endTimestamp": 1769219019745,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1464435229942087700",
+    "winners": [
+      "930967305754644520"
+    ]
+  }
+]

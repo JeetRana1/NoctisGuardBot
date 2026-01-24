@@ -1,0 +1,19 @@
+{
+  "1336111006644047964": {
+    "autoroleId": null,
+    "logChannelId": null,
+    "levelChannel": null,
+    "xpRate": 1,
+    "xpRateExpires": null,
+    "automod": {
+      "profanity": true,
+      "invites": true,
+      "spam": true
+    },
+    "disabledCommands": [],
+    "commands": {
+      "moderation": true,
+      "utility": true
+    }
+  }
+}

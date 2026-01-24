@@ -1,0 +1,21 @@
+# Node
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+
+# Data sessions (don't commit active session files)
+data/sessions/
+
+# VS Code
+.vscode/
