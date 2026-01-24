@@ -14,6 +14,8 @@
       <p id="lead" class="section-lead">Loading your servers…</p>
       <div id="guilds" class="guild-grid"></div>
       <p style="margin-top:18px"><a id="btn-login" class="btn primary" href="/api/auth">Sign in with Discord</a></p>
+      <p style="margin-top:8px"><button id="btn-check" class="btn ghost">Check server cookies</button></p>
+      <pre id="check-output" style="margin-top:12px;color:var(--muted);display:none"></pre>
     </div>
   </main>
 
@@ -30,6 +32,8 @@
       // Show debug info on the page to help find why sign-in failed
       const info = document.createElement('pre'); info.style.color='var(--muted)'; info.textContent = JSON.stringify(j, null, 2);
       document.body.appendChild(info);
+      // show debug button
+      document.getElementById('btn-check').style.display = 'inline-block';
       return; }
     const guilds = j.guilds || [];
     const allowed = guilds.filter(g => { try { if (g.owner) return true; const perms = BigInt(g.permissions || '0'); const ADMIN = 0x8n; const MANAGE_GUILD = 0x20n; return ((perms & (ADMIN | MANAGE_GUILD)) !== 0n); } catch(e){ return false; } });
@@ -41,6 +45,16 @@
     }).join('\n');
     btnLogin.style.display = 'none';
   } catch (e) { console.error(e); lead.textContent = 'Failed to load your servers'; }
+
+  // Add check server cookies button behavior
+  document.getElementById('btn-check').addEventListener('click', async () => {
+    const out = document.getElementById('check-output'); out.style.display='block'; out.textContent = 'Checking...';
+    try {
+      const r = await fetch('/api/debug');
+      const j = await r.json();
+      out.textContent = JSON.stringify(j, null, 2);
+    } catch (err) { out.textContent = 'Failed to fetch /api/debug: ' + err.message; }
+  });
 })();
 </script>
 </body>
