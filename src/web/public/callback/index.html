@@ -15,8 +15,8 @@
     <div id="manual" style="margin-top:18px">
       <label style="display:block;margin-bottom:8px">Backend URL (where your server is running)</label>
       <input id="backend" type="text" placeholder="https://your-backend.example.com" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:white">
-      <div style="margin-top:8px;display:flex;gap:8px"><button id="btn-send" class="btn primary">Send code to backend</button><button id="btn-try" class="btn ghost">Try common hosts</button></div>
-      <p style="margin-top:8px;color:var(--muted);font-size:0.95rem">Common backend hosts: <code>http://localhost:3000</code> (dev) or your deployed backend URL.</p>
+      <div style="margin-top:8px;display:flex;gap:8px"><button id="btn-send" class="btn primary">Send code to backend</button><button id="btn-try" class="btn ghost">Try this site</button></div>
+      <p style="margin-top:8px;color:var(--muted);font-size:0.95rem">Ensure your backend is deployed and accessible from this site (for Vercel deployments, consider hosting backend on the same origin or using serverless functions).</p>
     </div>
 
     <pre id="debug" style="margin-top:18px;color:var(--muted);font-size:0.85rem"></pre>
@@ -32,8 +32,8 @@
 
   function log(...args){ debug.textContent += args.join(' ') + '\n'; }
 
-  // Try posting to Render backend first, then current origin, then localhost
-  const candidates = [ 'https://noctisguard.onrender.com', window.location.origin, 'http://localhost:3000' ];
+  // Try posting to the current origin (Vercel-hosted backend)
+  const candidates = [ window.location.origin ];
 
   async function tryHost(host){
     try {
@@ -72,7 +72,7 @@
   });
 
   document.getElementById('btn-try').addEventListener('click', async ()=>{
-    const known = ['http://localhost:3000'];
+    const known = [window.location.origin];
     for (const k of known){ await tryHost(k); }
   });
 

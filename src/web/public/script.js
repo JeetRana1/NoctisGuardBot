@@ -28,11 +28,9 @@ const observer = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-// Default API base: use your Vercel site in production, fallback to localhost for live dev
-const DEFAULT_API_BASE = 'https://noctis-guard.vercel.app';
-const API_BASE = (window.location.hostname === 'localhost' || window.location.port === '5500') ? 'http://localhost:3000' : DEFAULT_API_BASE;
+// Default API base: prefer the current origin (suitable for Vercel deployments)
+const API_BASE = window.location.origin;
 
-// Ensure invite/dashboard links point to the correct target for single-click behavior
 // For auth links, set them directly to Discord's OAuth URL so a single click goes straight to authorization
 const CLIENT_ID = '1463677793761230874';
 function buildOauthUrl() {
@@ -50,9 +48,9 @@ document.querySelectorAll('a[href="/invite"], a[href="/invite-now"]').forEach(a 
   a.href = INVITE_URL;
 });
 
-// Dashboard links still point to the API site (dashboard is served from backend)
+// Dashboard links point to the same origin dashboard
 document.querySelectorAll('a[href="/dashboard"]').forEach(a => {
-  a.href = API_BASE + a.getAttribute('href');
+  a.href = window.location.origin + a.getAttribute('href');
 });
 
 // Direct auth URLs — one click will open Discord authorize and return to /callback

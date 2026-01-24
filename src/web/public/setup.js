@@ -1,5 +1,5 @@
 (function(){
-  const API_BASE = (window.location.hostname === 'localhost' || window.location.port === '5500') ? 'http://localhost:3000' : 'https://noctis-guard.vercel.app';
+  const API_BASE = window.location.origin;
   const guildId = window.GUILD_ID;
   if (!guildId) return console.warn('setup.js: no guild id');
 
