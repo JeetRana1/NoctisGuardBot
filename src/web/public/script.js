@@ -32,7 +32,7 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 const DEFAULT_API_BASE = 'https://noctis-guard.vercel.app';
 const API_BASE = (window.location.hostname === 'localhost' || window.location.port === '5500') ? 'http://localhost:3000' : DEFAULT_API_BASE;
 
-// Ensure invite/dashboard links point to API server so they work when previewing with Live Server
+// Ensure invite/dashboard links point to the correct target for single-click behavior
 // For auth links, set them directly to Discord's OAuth URL so a single click goes straight to authorization
 const CLIENT_ID = '1463677793761230874';
 function buildOauthUrl() {
@@ -42,7 +42,16 @@ function buildOauthUrl() {
   return `https://discord.com/api/oauth2/authorize?response_type=code&client_id=${CLIENT_ID}&scope=${scope}&redirect_uri=${redirect}&state=${state}`;
 }
 
-document.querySelectorAll('a[href="/invite"], a[href="/invite-now"], a[href="/dashboard"]').forEach(a => {
+// Invite URL: direct Discord invite so clicking from homepage goes straight to invitation
+const INVITE_URL = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&permissions=8&scope=bot%20applications.commands`;
+
+// Set invite links to go directly to Discord (one click)
+document.querySelectorAll('a[href="/invite"], a[href="/invite-now"]').forEach(a => {
+  a.href = INVITE_URL;
+});
+
+// Dashboard links still point to the API site (dashboard is served from backend)
+document.querySelectorAll('a[href="/dashboard"]').forEach(a => {
   a.href = API_BASE + a.getAttribute('href');
 });
 
