@@ -10,13 +10,31 @@ app.use(express.static('src/web/public'));
 app.use(express.json());
 
 // Session -- in-memory store for demo only
+const isProd = process.env.NODE_ENV === 'production';
 app.use(session({
   store: new FileStore({ path: './data/sessions', retries: 1 }),
   secret: process.env.SESSION_SECRET || 'replace_this_in_prod',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 1000 * 60 * 60 }
+  cookie: { maxAge: 1000 * 60 * 60, sameSite: isProd ? 'none' : 'lax', secure: isProd }
 }));
+
+// CORS for frontend callback (allow Vercel and localhost by default, override with ALLOWED_ORIGINS)
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://noctis-guard.vercel.app,http://localhost:3000').split(',').map(s=>s.trim());
+app.use((req, res, next) => {
+  const origin = req.get('origin');
+  if (origin && allowedOrigins.includes(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Access-Control-Allow-Credentials', 'true');
+    res.set('Vary', 'Origin');
+  }
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    return res.sendStatus(204);
+  }
+  return next();
+});
 
 
 // Simple in-memory last-request (for demo). In production, forward to the bot process.
@@ -203,6 +221,64 @@ app.get('/callback', async (req, res) => {
   } catch (err) {
     console.error('OAuth callback error', err);
     return res.status(500).send('OAuth callback failed');
+  }
+});
+
+// OAuth callback via POST (for static hosting or cross-origin flows)
+// Accepts { code, state, redirectUri } in JSON body. Tries to exchange code and create session, then returns JSON
+app.post('/callback', async (req, res) => {
+  const { code, state, redirectUri } = req.body || {};
+  if (!code) return res.status(400).json({ error: 'Missing code' });
+
+  try {
+    // Validate redirectUri if provided
+    const allowedRedirects = (process.env.ALLOWED_REDIRECTS || 'https://noctis-guard.vercel.app,http://localhost:3000').split(',').map(s=>s.trim());
+    const computedRedirect = redirectUri || process.env.OAUTH_REDIRECT || `${req.protocol}://${req.get('host')}/callback`;
+    if (redirectUri && !allowedRedirects.includes(redirectUri)) {
+      console.warn('Rejected unallowed redirectUri', redirectUri);
+      return res.status(400).json({ error: 'Redirect URI not allowed' });
+    }
+
+    const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: computedRedirect
+      })
+    });
+    const tokenJson = await tokenRes.json();
+    if (tokenJson.error) {
+      console.error('Token error', tokenJson);
+      return res.status(400).json({ error: 'Token error', detail: tokenJson });
+    }
+    const accessToken = tokenJson.access_token;
+
+    // fetch user guilds
+    const guildsRes = await fetch('https://discord.com/api/users/@me/guilds', { headers: { Authorization: `Bearer ${accessToken}` } });
+    const guilds = await guildsRes.json();
+
+    let userInfo = {};
+    try { const ures = await fetch('https://discord.com/api/users/@me', { headers: { Authorization: `Bearer ${accessToken}` } }); if (ures.ok) userInfo = await ures.json(); } catch (e) { console.warn('Failed to fetch user info', e); }
+
+    req.session.guilds = guilds;
+    req.session.user = { accessToken, id: userInfo.id, username: userInfo.username };
+
+    req.session.save((err) => {
+      if (err) console.error('Session save failed after OAuth callback (POST)', err);
+      if (req.get('accept') && req.get('accept').includes('application/json')) {
+        return res.json({ ok: true, redirect: '/dashboard' });
+      } else {
+        return res.redirect('/dashboard');
+      }
+    });
+
+  } catch (err) {
+    console.error('OAuth callback error (POST)', err);
+    return res.status(500).json({ error: 'OAuth callback failed' });
   }
 });
 
