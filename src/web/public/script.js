@@ -28,8 +28,9 @@ const observer = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-// API base: if page served via Live Server (port 5500), use localhost:3000 for API
-const API_BASE = (window.location.port === '5500') ? 'http://localhost:3000' : window.location.origin;
+// Default API base: use your Vercel site in production, fallback to localhost for live dev
+const DEFAULT_API_BASE = 'https://noctis-guard.vercel.app';
+const API_BASE = (window.location.hostname === 'localhost' || window.location.port === '5500') ? 'http://localhost:3000' : DEFAULT_API_BASE;
 
 // Ensure invite/dashboard links point to API server so they work when previewing with Live Server
 document.querySelectorAll('a[href="/invite"], a[href="/invite-now"], a[href="/auth"], a[href="/dashboard"]').forEach(a => {
@@ -38,6 +39,8 @@ document.querySelectorAll('a[href="/invite"], a[href="/invite-now"], a[href="/au
 
 // Helper to fetch JSON safely and handle non-JSON / errors
 async function safeFetch(url, options = {}){
+  options = options || {};
+  if (!options.credentials) options.credentials = 'include';
   try{
     const res = await fetch(url, options);
     if (!res.ok){
@@ -61,7 +64,7 @@ async function safeFetch(url, options = {}){
 let socket;
 if (typeof io !== 'undefined') {
   try {
-    socket = io();
+    socket = io(API_BASE);
     socket.on('reload', () => {
       console.log('Live reload: reloading page');
       window.location.reload();

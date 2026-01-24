@@ -140,7 +140,15 @@
     </div>
   </footer>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    (function(){
+      var API_BASE = (window.location.hostname === 'localhost' || window.location.port === '5500') ? 'http://localhost:3000' : 'https://noctis-guard.vercel.app';
+      var s = document.createElement('script');
+      s.src = API_BASE + '/socket.io/socket.io.js';
+      s.crossOrigin = 'anonymous';
+      document.head.appendChild(s);
+    })();
+  </script>
   <script src="script.js"></script>
 </body>
 </html>
