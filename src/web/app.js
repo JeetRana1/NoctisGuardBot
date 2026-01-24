@@ -19,8 +19,9 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60, sameSite: isProd ? 'none' : 'lax', secure: isProd }
 }));
 
-// CORS for frontend callback (allow Vercel and localhost by default, override with ALLOWED_ORIGINS)
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://noctis-guard.vercel.app,http://localhost:3000').split(',').map(s=>s.trim());
+// CORS for frontend callback (allow Vercel, Render, and localhost by default, override with ALLOWED_ORIGINS)
+const defaultOrigins = 'https://noctis-guard.vercel.app,https://noctisguard.onrender.com,http://localhost:3000';
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || defaultOrigins).split(',').map(s=>s.trim());
 app.use((req, res, next) => {
   const origin = req.get('origin');
   if (origin && allowedOrigins.includes(origin)) {
@@ -232,7 +233,8 @@ app.post('/callback', async (req, res) => {
 
   try {
     // Validate redirectUri if provided
-    const allowedRedirects = (process.env.ALLOWED_REDIRECTS || 'https://noctis-guard.vercel.app,http://localhost:3000').split(',').map(s=>s.trim());
+    const defaultRedirects = 'https://noctis-guard.vercel.app,https://noctisguard.onrender.com,http://localhost:3000';
+    const allowedRedirects = (process.env.ALLOWED_REDIRECTS || defaultRedirects).split(',').map(s=>s.trim());
     const computedRedirect = redirectUri || process.env.OAUTH_REDIRECT || `${req.protocol}://${req.get('host')}/callback`;
     if (redirectUri && !allowedRedirects.includes(redirectUri)) {
       console.warn('Rejected unallowed redirectUri', redirectUri);

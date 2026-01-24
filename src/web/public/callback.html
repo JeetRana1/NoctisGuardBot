@@ -32,8 +32,8 @@
 
   function log(...args){ debug.textContent += args.join(' ') + '\n'; }
 
-  // Try posting to current origin first (good for localhost dev where server and frontend are same origin)
-  const candidates = [ window.location.origin, 'http://localhost:3000' ];
+  // Try posting to Render backend first, then current origin, then localhost
+  const candidates = [ 'https://noctisguard.onrender.com', window.location.origin, 'http://localhost:3000' ];
 
   async function tryHost(host){
     try {
