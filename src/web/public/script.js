@@ -33,8 +33,22 @@ const DEFAULT_API_BASE = 'https://noctis-guard.vercel.app';
 const API_BASE = (window.location.hostname === 'localhost' || window.location.port === '5500') ? 'http://localhost:3000' : DEFAULT_API_BASE;
 
 // Ensure invite/dashboard links point to API server so they work when previewing with Live Server
-document.querySelectorAll('a[href="/invite"], a[href="/invite-now"], a[href="/auth"], a[href="/dashboard"]').forEach(a => {
+// For auth links, set them directly to Discord's OAuth URL so a single click goes straight to authorization
+const CLIENT_ID = '1463677793761230874';
+function buildOauthUrl() {
+  const scope = 'identify%20guilds';
+  const redirect = encodeURIComponent(window.location.origin + '/callback');
+  const state = Math.random().toString(36).slice(2);
+  return `https://discord.com/api/oauth2/authorize?response_type=code&client_id=${CLIENT_ID}&scope=${scope}&redirect_uri=${redirect}&state=${state}`;
+}
+
+document.querySelectorAll('a[href="/invite"], a[href="/invite-now"], a[href="/dashboard"]').forEach(a => {
   a.href = API_BASE + a.getAttribute('href');
+});
+
+// Direct auth URLs — one click will open Discord authorize and return to /callback
+document.querySelectorAll('a[href="/auth"]').forEach(a => {
+  a.href = buildOauthUrl();
 });
 
 // Helper to fetch JSON safely and handle non-JSON / errors
