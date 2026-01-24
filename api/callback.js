@@ -72,8 +72,10 @@ module.exports = async (req, res) => {
     // set secure, httpOnly cookie
     // Set cookie to be available after cross-site redirects (Discord -> our callback)
     const cookie = `noctis_auth=${token}; HttpOnly; Path=/; Max-Age=3600; SameSite=None; Secure`;
-    res.setHeader('Set-Cookie', cookie);
-    console.log('Callback: set noctis_auth cookie and redirecting to /dashboard (user id', userInfo && userInfo.id, ')');
+    // also set a debug cookie (non-HttpOnly) so the browser can show it for debugging
+    const debugCookie = `noctis_auth_debug=${encodeURIComponent(token.slice(0,20))}; Path=/; Max-Age=3600; SameSite=None; Secure`;
+    res.setHeader('Set-Cookie', [cookie, debugCookie]);
+    console.log('Callback: set noctis_auth cookie and debug cookie and redirecting to /dashboard (user id', userInfo && userInfo.id, ')');
     console.log('Callback: token JSON preview:', JSON.stringify({ user: payload.user }, null, 2));
 
     // redirect to dashboard

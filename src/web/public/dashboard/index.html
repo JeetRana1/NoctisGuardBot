@@ -52,7 +52,9 @@
     try {
       const r = await fetch('/api/debug');
       const j = await r.json();
-      out.textContent = JSON.stringify(j, null, 2);
+      // Also show document.cookie so we can quickly see if the debug cookie was set in the browser
+      const docCookie = document.cookie || '<no document.cookie present>';
+      out.textContent = 'document.cookie:\n' + docCookie + '\n\nserver /api/debug response:\n' + JSON.stringify(j, null, 2);
     } catch (err) { out.textContent = 'Failed to fetch /api/debug: ' + err.message; }
   });
 })();
