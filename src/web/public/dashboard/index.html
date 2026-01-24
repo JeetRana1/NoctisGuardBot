@@ -26,7 +26,11 @@
     const r = await fetch('/api/session', { credentials: 'include' });
     const j = await r.json();
     console.log('session response:', j);
-    if (!j.ok) { lead.textContent = 'Please sign in to view your servers.'; return; }
+    if (!j.ok) { lead.textContent = 'Please sign in to view your servers.'; 
+      // Show debug info on the page to help find why sign-in failed
+      const info = document.createElement('pre'); info.style.color='var(--muted)'; info.textContent = JSON.stringify(j, null, 2);
+      document.body.appendChild(info);
+      return; }
     const guilds = j.guilds || [];
     const allowed = guilds.filter(g => { try { if (g.owner) return true; const perms = BigInt(g.permissions || '0'); const ADMIN = 0x8n; const MANAGE_GUILD = 0x20n; return ((perms & (ADMIN | MANAGE_GUILD)) !== 0n); } catch(e){ return false; } });
     if (!guilds || guilds.length === 0) { lead.textContent = 'No servers found where you have admin or manage permissions.'; return; }

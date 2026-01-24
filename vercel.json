@@ -13,6 +13,8 @@
     { "src": "/api/session", "dest": "/api/session.js" },
     { "src": "/api/logout", "dest": "/api/logout.js" },
     { "src": "/dashboard", "dest": "/src/web/public/dashboard/index.html" },
+    { "src": "/socket.io/socket.io.js", "dest": "/src/web/public/nosocket.js" },
+    { "src": "/favicon.ico", "dest": "/img/Sitelogo.svg" },
     { "src": "/(.*)", "dest": "/src/web/public/$1" }
   ]
 }
