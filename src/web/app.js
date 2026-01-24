@@ -3,8 +3,21 @@ const express = require('express');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const fetch = global.fetch || require('node-fetch');
+const fs = require('fs');
+const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Ensure data directories exist to avoid session-file-store ENOENT errors
+try {
+  const dataDir = path.join(process.cwd(), 'data');
+  const sessionsDir = path.join(process.cwd(), 'data', 'sessions');
+  fs.mkdirSync(sessionsDir, { recursive: true });
+  // Ensure other data files' directories exist as well
+  fs.writeFileSync(path.join(dataDir, 'guildSettings.json'), fs.existsSync(path.join(dataDir, 'guildSettings.json')) ? fs.readFileSync(path.join(dataDir, 'guildSettings.json')) : '{}');
+} catch (e) {
+  console.warn('Failed to ensure data directories exist', e);
+}
 
 app.use(express.static('src/web/public'));
 app.use(express.json());

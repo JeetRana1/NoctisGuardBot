@@ -45,7 +45,16 @@ const hasToken = !!process.env.DISCORD_TOKEN;
 console.log('DISCORD_TOKEN present:', hasToken);
 if (!hasToken) console.error('DISCORD_TOKEN is missing. Set it in environment variables.');
 
-client.login(process.env.DISCORD_TOKEN).catch(err => {
+console.log('Attempting Discord client login...');
+const loginStart = Date.now();
+let loginTimed = false;
+const loginTimer = setTimeout(() => { loginTimed = true; console.warn('Discord login still in progress after 30s — verify network connectivity and that the token is correct.'); }, 30000);
+
+client.login(process.env.DISCORD_TOKEN).then(() => {
+  clearTimeout(loginTimer);
+  if (!loginTimed) console.log('Discord login completed quickly (within 30s).');
+}).catch(err => {
+  clearTimeout(loginTimer);
   console.error('Discord client login failed:', err && err.stack ? err.stack : String(err));
   // keep process alive so Render logs capture the error; you might want to exit in production
 });
