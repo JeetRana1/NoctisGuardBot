@@ -15,14 +15,12 @@ function run(name, cmd, args) {
   return proc;
 }
 
-console.log('Starting bot and web server...');
+console.log('Starting bot (web removed)...');
 const bot = run('bot', 'npm', ['run', 'start']);
-const web = run('web', 'npm', ['run', 'web']);
 
 function shutdown() {
-  console.log('\nShutting down both processes...');
+  console.log('\nShutting down the bot...');
   if (!bot.killed) bot.kill();
-  if (!web.killed) web.kill();
   process.exit();
 }
 

@@ -21,6 +21,13 @@ module.exports = {
     }
 
     try {
+      const welcome = require('../welcomeManager');
+      welcome.init(client);
+    } catch (e) {
+      console.error('Failed to init welcome manager:', e);
+    }
+
+    try {
       const leveling = require('../levelingManager');
       leveling.init(client);
       console.log('Leveling manager initialized');
@@ -34,6 +41,15 @@ module.exports = {
       console.log('Guild command updater initialized');
     } catch (e) {
       console.error('Failed to init guild command updater:', e);
+    }
+
+    try {
+      const webhook = require('../webhook');
+      webhook.startWebhookListener(client);
+      webhook.reconcileAllGuilds(client);
+      console.log('Webhook listener started and guilds reconciled');
+    } catch (e) {
+      console.error('Failed to start webhook listener:', e);
     }
   },
 };

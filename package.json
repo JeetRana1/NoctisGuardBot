@@ -6,15 +6,15 @@
   "scripts": {
     "start": "node src/bot/index.js",
     "dev": "nodemon src/bot/index.js",
-    "web": "node src/web/app.js",
-    "web:dev": "nodemon --watch src/web --exec \"node src/web/app.js\"",
     "gen-icons": "node scripts/generate-icons.js",
     "start:all": "node scripts/start-all.js"
   },
   "dependencies": {
     "@discordjs/voice": "^0.18.0",
+    "axios": "^1.5.0",
     "chokidar": "^5.0.0",
     "discord.js": "^14.25.1",
+    "sharp": "^0.32.1",
     "dotenv": "^16.0.0",
     "express": "^4.18.0",
     "express-session": "^1.18.2",

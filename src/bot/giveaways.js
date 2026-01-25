@@ -118,7 +118,12 @@ async function endGiveaway(id) {
     for (const id of gw.winners || []) {
       const user = await clientRef.users.fetch(id).catch(() => null);
       if (user) {
-        try { await user.send(`You won **${gw.prize}** in ${guild.name}!`); } catch (e) { /* ignore */ }
+        try {
+          const { EmbedBuilder } = require('discord.js');
+          const { baseEmbed } = require('./utils/embed');
+          const dm = baseEmbed({ title: 'You won!', description: `You won **${gw.prize}** in **${guild.name}**!`, color: 0x2ECC71, timestamp: true });
+          await user.send({ embeds: [dm] });
+        } catch (e) { /* ignore */ }
       }
     }
   } catch (err) {

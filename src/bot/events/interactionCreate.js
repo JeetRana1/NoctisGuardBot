@@ -19,6 +19,18 @@ module.exports = {
       return;
     }
 
+    // Check plugin/command enabled state
+    try {
+      const webhook = require('../webhook');
+      const pluginName = command.plugin || (command.data && command.data.name) || interaction.commandName;
+      if (interaction.guild && !webhook.isCommandEnabled(interaction.guild.id, pluginName)){
+        const { EmbedBuilder } = require('discord.js');
+        await interaction.reply({ embeds: [ new EmbedBuilder().setTitle('Command disabled').setDescription('That command is disabled on this server.').setColor(0xF1C40F) ], ephemeral: true }).catch(()=>{});
+        return;
+      }
+    } catch (e) { /* non-fatal if webhook module not available */ }
+
+
     try {
       await command.execute(interaction);
 

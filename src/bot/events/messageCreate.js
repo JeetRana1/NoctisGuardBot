@@ -34,7 +34,7 @@ module.exports = {
           try { await message.delete(); } catch(e){}
           const rec = moderation.addWarning(message.guild.id, message.author.id, message.client.user.id, 'Invite link posted');
           moderation.logAction(message.client, message.guild.id, 'Invite', message.author.id, message.client.user.id, 'Invite link posted', { messageId: message.id, caseId: rec.id });
-          try { await moderation.sendUserDM(message.client, message.guild.id, message.author.id, `You were warned in ${message.guild.name} for posting invite links.`); } catch(e){}
+          try { await moderation.sendUserDM(message.client, message.guild.id, message.author.id, { embeds: [{ title: `You were warned in ${message.guild.name}`, description: 'Posting invite links is not allowed.', color: 0xF1C40F, fields:[{ name: 'Case', value: `#${rec.id}` }] }] }); } catch(e){}
           return;
         }
       }
@@ -53,7 +53,7 @@ module.exports = {
           try { await message.delete(); } catch(e){}
           const rec = moderation.addWarning(message.guild.id, message.author.id, message.client.user.id, 'Spam detected');
           moderation.logAction(message.client, message.guild.id, 'Spam', message.author.id, message.client.user.id, 'Spam detected', { messageId: message.id, caseId: rec.id });
-          try { await moderation.sendUserDM(message.client, message.guild.id, message.author.id, `You were warned in ${message.guild.name} for spamming.`); } catch(e){}
+          try { await moderation.sendUserDM(message.client, message.guild.id, message.author.id, { embeds: [{ title: `You were warned in ${message.guild.name}`, description: 'Spamming is not allowed.', color: 0xF1C40F, fields:[{ name: 'Case', value: `#${rec.id}` }] }] }); } catch(e){}
           recent.set(key, []);
           return;
         }

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { baseEmbed } = require('./utils/embed');
 
 const infractionsPath = path.join(process.cwd(), 'data', 'infractions.json');
 const tempbansPath = path.join(process.cwd(), 'data', 'tempbans.json');
@@ -53,7 +54,14 @@ module.exports = {
     try {
       const user = await client.users.fetch(userId).catch(()=>null);
       if (!user) return false;
-      if (typeof message === 'string') { await user.send(message); return true; }
+      // If caller provided a plain string, wrap it into a simple embed for consistency
+      if (typeof message === 'string') {
+        const { EmbedBuilder } = require('discord.js');
+        const embed = new EmbedBuilder().setDescription(message).setColor(0x3498DB);
+        await user.send({ embeds: [embed] });
+        return true;
+      }
+      // If message is an embed object, send as-is
       await user.send(message);
       return true;
     } catch (e) { return false; }
@@ -90,18 +98,19 @@ module.exports = {
       if (channelId && client) {
         client.channels.fetch(channelId).then(ch => {
           if (!ch || !ch.isTextBased?.()) return;
-          const { EmbedBuilder } = require('discord.js');
-          const embed = new EmbedBuilder()
-            .setTitle('Moderation Action')
-            .setColor(0xE74C3C)
-            .addFields(
+              const embed = baseEmbed({
+            title: 'Moderation Action',
+            color: 0xE74C3C,
+            fields: [
               { name: 'Case', value: `#${id}`, inline: true },
               { name: 'Type', value: type, inline: true },
               { name: 'Target', value: `<@${targetId}>`, inline: true },
               { name: 'Moderator', value: `<@${moderatorId}>`, inline: true },
               { name: 'Reason', value: reason || 'No reason provided' }
-            )
-            .setTimestamp(timestamp);
+            ]
+          });
+          // preserve original timestamp
+          embed.setTimestamp(timestamp);
           ch.send({ embeds: [embed] }).catch(()=>{});
         }).catch(()=>{});
       }
@@ -119,7 +128,7 @@ module.exports = {
     ensureFile(guildSettingsPath, {});
     const s = readJson(guildSettingsPath);
     // xpRate: per-guild multiplier for XP earned (1 = normal, 2 = double XP, etc.)
-    return s[guildId] || { autoroleId: null, logChannelId: null, levelChannel: null, xpRate: 1, xpRateExpires: null, automod: { profanity: true, invites: true, spam: true } };
+    return s[guildId] || { autoroleId: null, logChannelId: null, levelChannel: null, xpRate: 1, xpRateExpires: null, automod: { profanity: true, invites: true, spam: true }, welcomeChannelId: null, byeChannelId: null, welcomeEnabled: true, welcomeMessage: null, byeMessage: null };
   },
   // Return entire settings object (useful for managers that need to scan all guild settings)
   getAllGuildSettings(){

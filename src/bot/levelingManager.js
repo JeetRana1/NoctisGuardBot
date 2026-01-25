@@ -97,19 +97,25 @@ async function addXp(client, guildId, userId) {
             const username = member ? `${member.user.username}#${member.user.discriminator}` : `<@${userId}>`;
             const avatar = member ? member.user.displayAvatarURL({ extension: 'png', size: 128 }) : null;
             const required = _requiredXpFor(newLevel);
-            const progress = Math.round((u.xp / required) * 20);
-            const bar = '█'.repeat(progress) + '░'.repeat(20 - progress);
-            const embed = {
-              title: `Level Up!`,
-              description: `**${username}** reached **Level ${newLevel}** 🎉`,
-              fields: [
-                { name: 'Progress', value: `${bar} \n${u.xp}/${required} XP`, inline: false }
-              ],
-              color: 0x00FF99,
-              thumbnail: avatar ? { url: avatar } : undefined
-            };
-            // Mention the user so they're notified when they level up
-            channel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(()=>{});
+            // try to generate a level-up image and send it to the level channel
+            try {
+              const { generateLevelUpCard } = require('./utils/image');
+              const buf = await generateLevelUpCard({ username: member ? member.user.username : username, discriminator: member ? member.user.discriminator : '0000', avatarUrl: avatar, level: newLevel, color: '#8b5cf6' });
+              await channel.send({ content: `<@${userId}>`, files: [{ attachment: buf, name: 'levelup.png' }] }).catch(()=>{});
+            } catch (e) {
+              // fallback to embed if image generation fails
+              const progress = Math.round((u.xp / required) * 20);
+              const bar = '█'.repeat(progress) + '░'.repeat(20 - progress);
+              const { EmbedBuilder } = require('discord.js');
+              const embed = new EmbedBuilder()
+                .setTitle('Level Up!')
+                .setDescription(`**${username}** reached **Level ${newLevel}** 🎉`)
+                .addFields({ name: 'Progress', value: `${bar} \n${u.xp}/${required} XP`, inline: false })
+                .setColor(0x00FF99)
+                .setTimestamp();
+              if (avatar) embed.setThumbnail(avatar);
+              channel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(()=>{});
+            }
           }
         }
       }
@@ -123,6 +129,12 @@ function getUser(guildId, userId) {
   _ensureGuild(guildId);
   const u = data[guildId].users[userId] || { xp: 0, level: 0, totalXp: 0 };
   return { ...u };
+}
+
+// Backwards-compatible helper that returns level info (used by some commands)
+function getLevel(client, guildId, userId) {
+  const u = getUser(guildId, userId);
+  return { level: u.level, xp: u.xp, totalXp: u.totalXp };
 }
 
 function getLeaderboard(guildId, limit = 10) {
@@ -177,13 +189,21 @@ async function setLevel(client, guildId, userId, level, announce = true){
             const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(()=>null);
             const username = member ? `${member.user.username}#${member.user.discriminator}` : `<@${userId}>`;
             const avatar = member ? member.user.displayAvatarURL({ extension: 'png', size: 128 }) : null;
-            const embed = {
-              title: `Level Changed`,
-              description: `**${username}** was set to **Level ${u.level}** by an admin`,
-              color: 0x3498DB,
-              thumbnail: avatar ? { url: avatar } : undefined
-            };
-            await channel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(()=>{});
+            // try to generate a level-up/change image and send it
+            try {
+              const { generateLevelUpCard } = require('./utils/image');
+              const msg = `was set to Level ${u.level} by an admin`;
+              const buf = await generateLevelUpCard({ username: member ? member.user.username : username, discriminator: member ? member.user.discriminator : '0000', avatarUrl: avatar, level: u.level, color: '#8b5cf6', message: msg });
+              await channel.send({ content: `<@${userId}>`, files: [{ attachment: buf, name: 'levelup.png' }] }).catch(()=>{});
+            } catch (e) {
+              const embed = {
+                title: `Level Changed`,
+                description: `**${username}** was set to **Level ${u.level}** by an admin`,
+                color: 0x3498DB,
+                thumbnail: avatar ? { url: avatar } : undefined
+              };
+              await channel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(()=>{});
+            }
           }
         }
       }
@@ -264,4 +284,4 @@ function init(client) {
   } catch (e) { console.warn('Leveling manager settings watcher not initialized', e); }
 }
 
-module.exports = { init, addXp, getUser, getLeaderboard, getRank, _requiredXpFor, scheduleXpRevert, clearXpTimer, setLevel };
+module.exports = { init, addXp, getUser, getLevel, getLeaderboard, getRank, _requiredXpFor, scheduleXpRevert, clearXpTimer, setLevel };

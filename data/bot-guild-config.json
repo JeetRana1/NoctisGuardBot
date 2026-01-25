@@ -1,0 +1,23 @@
+{
+  "1336111006644047964": {
+    "plugins": {
+      "giveaway": true,
+      "level": true,
+      "info": true,
+      "welcome": true
+    },
+    "disabled": [],
+    "config": {
+      "welcome": {
+        "welcome": {
+          "channel": "",
+          "message": null
+        }
+      }
+    }
+  },
+  "934267446980935690": {
+    "plugins": {},
+    "disabled": []
+  }
+}

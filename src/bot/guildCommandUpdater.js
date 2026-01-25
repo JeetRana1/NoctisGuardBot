@@ -12,13 +12,35 @@ async function updateGuildCommandsUsingClient(client, guildId, disabledCommands)
   try{
     const commandsPath = path.join(process.cwd(), 'src', 'bot', 'commands');
     if (!fs.existsSync(commandsPath)) throw new Error('Commands directory not found');
-    const files = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
+    // recursively collect command files
+    function collectFiles(dir){
+      const out = [];
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })){
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) out.push(...collectFiles(p));
+        else if (e.isFile() && e.name.endsWith('.js')) out.push(p);
+      }
+      return out;
+    }
+    const files = collectFiles(commandsPath);
     const cmds = [];
-    for (const file of files) {
-      const command = require(path.join(commandsPath, file));
-      if (!command || !command.data) continue;
-      if (Array.isArray(disabledCommands) && disabledCommands.includes(command.data.name)) continue;
-      cmds.push(command.data.toJSON());
+    for (const filePath of files){
+      try {
+        const rel = path.relative(commandsPath, filePath);
+        const parts = rel.split(path.sep);
+        // derive plugin name from folder if present
+        const pluginName = parts.length > 1 ? parts[0] : 'core';
+        const command = require(filePath);
+        if (!command || !command.data) continue;
+        // determine effective plugin name
+        const effectivePlugin = command.plugin || pluginName;
+        const commandName = command.data && command.data.name;
+        // If the dashboard disabled the plugin (by folder name) or specific command, skip it
+        if (Array.isArray(disabledCommands) && (disabledCommands.includes(effectivePlugin) || disabledCommands.includes(commandName))) continue;
+        cmds.push(command.data.toJSON());
+      } catch (e) {
+        console.warn('Failed to load command file', filePath, e);
+      }
     }
 
     if (!client.application || !client.application.commands) throw new Error('Client application commands not available');

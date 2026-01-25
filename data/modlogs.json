@@ -1,222 +1,223 @@
 {
   "1336111006644047964": [
     {
-      "id": "mkrfetnjpdb742",
+      "id": "mktazsr5apzx0x",
       "guildId": "1336111006644047964",
-      "type": "Warning",
-      "targetId": "930967305754644520",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
       "moderatorId": "474580691225673738",
-      "reason": "22",
-      "timestamp": 1769205729439,
-      "caseId": "mkrfetniylv5zc"
+      "reason": "Used command: /xprate",
+      "timestamp": 1769319242322,
+      "command": "xprate"
     },
     {
-      "id": "mkrfplnenx3d2b",
+      "id": "mktbadgl0s8shh",
       "guildId": "1336111006644047964",
-      "type": "Warning",
-      "targetId": "930967305754644520",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
       "moderatorId": "474580691225673738",
-      "reason": "23",
-      "timestamp": 1769206232282,
-      "caseId": "mkrfplndy4vssg"
+      "reason": "Used command: /xprate",
+      "timestamp": 1769319735717,
+      "command": "xprate"
     },
     {
-      "id": "mkrfplqdg872fv",
+      "id": "mktbc5n43pds4y",
       "guildId": "1336111006644047964",
-      "type": "Warning",
-      "targetId": "930967305754644520",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
       "moderatorId": "474580691225673738",
-      "reason": "23",
-      "timestamp": 1769206232389,
-      "caseId": "mkrfplqcyfz88d"
+      "reason": "Used command: /setlevelchannel",
+      "timestamp": 1769319818896,
+      "command": "setlevelchannel"
     },
     {
-      "id": "mkrfw9g3ynrbg7",
+      "id": "mktbggnynf2ol8",
       "guildId": "1336111006644047964",
-      "type": "Warning",
-      "targetId": "930967305754644520",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
       "moderatorId": "474580691225673738",
-      "reason": "fef",
-      "timestamp": 1769206543059,
-      "caseId": "mkrfw9g1bzoynl",
-      "warnings": 9
+      "reason": "Used command: /setlevelchannel",
+      "timestamp": 1769320019806,
+      "command": "setlevelchannel"
     },
     {
-      "id": "mkrfw9jwgq6gtb",
+      "id": "mktbklf2rrt9ma",
       "guildId": "1336111006644047964",
-      "type": "Warning",
-      "targetId": "930967305754644520",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
       "moderatorId": "474580691225673738",
-      "reason": "fef",
-      "timestamp": 1769206543196,
-      "caseId": "mkrfw9jvxwq7ny"
+      "reason": "Used command: /xprate",
+      "timestamp": 1769320212590,
+      "command": "xprate"
     },
     {
-      "id": "mkrfwa0ip8g7iq",
+      "id": "mktbkqlmrid4kd",
       "guildId": "1336111006644047964",
-      "type": "AutoKick",
-      "targetId": "930967305754644520",
-      "moderatorId": "1463677793761230874",
-      "reason": "Auto-kick after 9 warnings",
-      "timestamp": 1769206543794,
-      "caseId": "mkrfw9g1bzoynl"
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /xprate",
+      "timestamp": 1769320219306,
+      "command": "xprate"
     },
     {
-      "id": "mkrfwyvzof0n49",
+      "id": "mktbvept95ndvb",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /setlevel",
+      "timestamp": 1769320717121,
+      "command": "setlevel"
+    },
+    {
+      "id": "mktbx35699mqwr",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /moderation",
+      "timestamp": 1769320795434,
+      "command": "moderation"
+    },
+    {
+      "id": "mku6du55esg2wh",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /giveaway",
+      "timestamp": 1769371965401,
+      "command": "giveaway"
+    },
+    {
+      "id": "mku73w7ub91p1v",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /plugins",
+      "timestamp": 1769373181146,
+      "command": "plugins"
+    },
+    {
+      "id": "mku7j1kw52zoe3",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /plugins",
+      "timestamp": 1769373887936,
+      "command": "plugins"
+    },
+    {
+      "id": "mku9wj27f34gcf",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /setwelcomechannel",
+      "timestamp": 1769377876351,
+      "command": "setwelcomechannel"
+    },
+    {
+      "id": "mku9wowff6ovb7",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /setbyechannel",
+      "timestamp": 1769377883919,
+      "command": "setbyechannel"
+    },
+    {
+      "id": "mkua3tifzrhvrp",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /setwelcomechannel",
+      "timestamp": 1769378216487,
+      "command": "setwelcomechannel"
+    },
+    {
+      "id": "mkuaaocfvsa3fb",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /setwelcomemessage",
+      "timestamp": 1769378536383,
+      "command": "setwelcomemessage"
+    },
+    {
+      "id": "mkuaauf28s2n91",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /setwelcomechannel",
+      "timestamp": 1769378544254,
+      "command": "setwelcomechannel"
+    },
+    {
+      "id": "mkuabdjek51ja3",
       "guildId": "1336111006644047964",
       "type": "Kick",
-      "targetId": "652673920616366140",
-      "moderatorId": "474580691225673738",
-      "reason": "bot",
-      "timestamp": 1769206576031
-    },
-    {
-      "id": "mkrggtlkrbro8a",
-      "guildId": "1336111006644047964",
-      "type": "Warning",
       "targetId": "930967305754644520",
       "moderatorId": "474580691225673738",
-      "reason": "r3",
-      "timestamp": 1769207502296,
-      "caseId": "mkrggtlis8pvlh",
-      "warnings": 1
+      "reason": "bitch",
+      "timestamp": 1769378569034
     },
     {
-      "id": "mkrggtpmh1ovwv",
+      "id": "mkuabdos6da99v",
       "guildId": "1336111006644047964",
-      "type": "Warning",
-      "targetId": "930967305754644520",
-      "moderatorId": "474580691225673738",
-      "reason": "r3",
-      "timestamp": 1769207502442,
-      "caseId": "mkrggtpkdpmfyh",
-      "warnings": 2
-    },
-    {
-      "id": "mkrgusklc1qkvw",
-      "guildId": "1336111006644047964",
-      "type": "Warning",
-      "targetId": "930967305754644520",
-      "moderatorId": "474580691225673738",
-      "reason": "fe",
-      "timestamp": 1769208154149,
-      "caseId": "mkrguskjsspey1",
-      "warnings": 3
-    },
-    {
-      "id": "mkrgut5ns374rr",
-      "guildId": "1336111006644047964",
-      "type": "AutoKick",
-      "targetId": "930967305754644520",
-      "moderatorId": "1463677793761230874",
-      "reason": "Auto-kick after 3 warnings",
-      "timestamp": 1769208154907,
-      "caseId": "mkrguskjsspey1"
-    },
-    {
-      "id": "mkrhgtfu5txlyj",
-      "guildId": "1336111006644047964",
-      "type": "Spam",
+      "type": "AdminCommand",
       "targetId": "474580691225673738",
-      "moderatorId": "1463677793761230874",
-      "reason": "Spam detected",
-      "timestamp": 1769209181706,
-      "messageId": "1464394214367301764",
-      "caseId": "mkrhgtftp8o8mr"
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /moderation",
+      "timestamp": 1769378569228,
+      "command": "moderation"
     },
     {
-      "id": "mkrhguz1rhyj3r",
-      "guildId": "1336111006644047964",
-      "type": "Spam",
-      "targetId": "474580691225673738",
-      "moderatorId": "1463677793761230874",
-      "reason": "Spam detected",
-      "timestamp": 1769209183693,
-      "messageId": "1464394222672281735",
-      "caseId": "mkrhguz1oldp0z"
-    },
-    {
-      "id": "mkrhgv2kvs39xg",
-      "guildId": "1336111006644047964",
-      "type": "Spam",
-      "targetId": "474580691225673738",
-      "moderatorId": "1463677793761230874",
-      "reason": "Spam detected",
-      "timestamp": 1769209183820,
-      "messageId": "1464394223263551488",
-      "caseId": "mkrhgv2js3vem6"
-    },
-    {
-      "id": "mkriapptq0tm7k",
+      "id": "mkuabnetz938xn",
       "guildId": "1336111006644047964",
       "type": "AdminCommand",
       "targetId": "474580691225673738",
       "moderatorId": "474580691225673738",
       "reason": "Used command: /setlogchannel",
-      "timestamp": 1769210576561,
+      "timestamp": 1769378581829,
       "command": "setlogchannel"
     },
     {
-      "id": "mkribd0gzmzton",
-      "guildId": "1336111006644047964",
-      "type": "Warning",
-      "targetId": "930967305754644520",
-      "moderatorId": "474580691225673738",
-      "reason": "jsbcus",
-      "timestamp": 1769210606752,
-      "caseId": "mkribd0f8kp4k9",
-      "warnings": 1
-    },
-    {
-      "id": "mkribdiany4e2l",
+      "id": "mkual7kpu0xya8",
       "guildId": "1336111006644047964",
       "type": "AdminCommand",
       "targetId": "474580691225673738",
       "moderatorId": "474580691225673738",
-      "reason": "Used command: /moderation",
-      "timestamp": 1769210607394,
-      "command": "moderation"
+      "reason": "Used command: /setwelcomemessage",
+      "timestamp": 1769379027865,
+      "command": "setwelcomemessage"
     },
     {
-      "id": "mkrjt8ikw37pe1",
-      "guildId": "1336111006644047964",
-      "type": "Warning",
-      "targetId": "930967305754644520",
-      "moderatorId": "474580691225673738",
-      "reason": "3rdh8gf7egfo4",
-      "timestamp": 1769213120348,
-      "caseId": "mkrjt8iiuwuq0a",
-      "warnings": 2
-    },
-    {
-      "id": "mkrjt8z8o4s18f",
+      "id": "mkuc7lcb6qx0yj",
       "guildId": "1336111006644047964",
       "type": "AdminCommand",
       "targetId": "474580691225673738",
       "moderatorId": "474580691225673738",
-      "reason": "Used command: /moderation",
-      "timestamp": 1769213120948,
-      "command": "moderation"
+      "reason": "Used command: /setwelcomechannel",
+      "timestamp": 1769381751755,
+      "command": "setwelcomechannel"
     },
     {
-      "id": "mkrjuh1g07zv5d",
+      "id": "mkuc7sh7fi2umk",
       "guildId": "1336111006644047964",
       "type": "AdminCommand",
       "targetId": "474580691225673738",
       "moderatorId": "474580691225673738",
-      "reason": "Used command: /giveaway",
-      "timestamp": 1769213178052,
-      "command": "giveaway"
-    },
-    {
-      "id": "mkrkdslnk4ez4m",
-      "guildId": "1336111006644047964",
-      "type": "AdminCommand",
-      "targetId": "474580691225673738",
-      "moderatorId": "474580691225673738",
-      "reason": "Used command: /giveaway",
-      "timestamp": 1769214079499,
-      "command": "giveaway"
+      "reason": "Used command: /setbyechannel",
+      "timestamp": 1769381761003,
+      "command": "setbyechannel"
     }
   ]
 }

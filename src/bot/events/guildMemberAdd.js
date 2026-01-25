@@ -12,6 +12,12 @@ module.exports = {
           moderation.logAction(member.client, member.guild.id, 'Autorole', member.id, member.client.user.id, 'Assigned autorole', { roleId: cfg.autoroleId });
         } catch (e) { console.warn('Autorole assignment failed', e); }
       }
+      // welcome message
+      try {
+        const welcome = require('../welcomeManager');
+        // always attempt to send a welcome message (fall back to any available channel)
+        welcome.sendWelcome(member).catch((e)=>{ console.warn('Failed to send welcome message', e); });
+      } catch (e) { console.warn('Failed to send welcome message', e); }
     } catch (err) { console.error('Autorole on join failed', err); }
   }
 };
