@@ -18,8 +18,16 @@
         { key: 'giveaway', name: 'Giveaways', cat: 'utility' },
         { key: 'serverinfo', name: 'Server Info', cat: 'utility' },
         { key: 'level', name: 'Level (xp/leaderboard)', cat: 'utility' },
+        { key: 'leaderboard', name: 'Leaderboard', cat: 'utility' },
+        { key: 'userinfo', name: 'User Info', cat: 'utility' },
+        { key: 'ping', name: 'Ping', cat: 'utility' },
         { key: 'xprate', name: 'XP Rate (Admin)', cat: 'utility' },
+        { key: 'setlevel', name: 'Set Level (Admin)', cat: 'utility' },
+        { key: 'setlevelchannel', name: 'Set Level Channel', cat: 'utility' },
+        { key: 'setlogchannel', name: 'Set Log Channel', cat: 'moderation' },
+        { key: 'logs', name: 'Moderation Logs', cat: 'moderation' },
       ];
+
       const container = document.getElementById('commands-list'); container.innerHTML = '';
       commands.forEach(c => {
         const el = document.createElement('div'); el.className = 'section-card';
@@ -47,9 +55,11 @@
       const channelId = document.getElementById('gw-channel').value.trim();
       const role = document.getElementById('gw-role').value.trim() || undefined;
       if(!prize||!duration) return alert('Enter prize and duration');
-      const res = await fetch(API_BASE + '/api/guilds/' + guildId + '/giveaways', {method:'POST', credentials: 'include', headers:{'Content-Type':'application/json'},body:JSON.stringify({prize,duration,winners,channelId,requireRole:role})});
+      const res = await fetch(API_BASE + '/api/guilds/' + guildId + '/giveaways', {method:'POST', credentials: 'include', headers:{'Content-Type': 'application/json'}, body: JSON.stringify({prize,duration,winners,channelId,requireRole:role})});
       if(!res.ok) return alert('Create failed');
-      document.getElementById('gw-prize').value=''; document.getElementById('gw-duration').value=''; document.getElementById('gw-winners').value='1'; document.getElementById('gw-channel').value=''; document.getElementById('gw-role').value='';
+      document.getElementById('gw-prize').value='';
+      document.getElementById('gw-duration').value=''; document.getElementById('gw-winners').value='1';
+      document.getElementById('gw-channel').value=''; document.getElementById('gw-role').value='';
       await loadGiveaways();
     } finally {
       btn.disabled = false; delete btn.dataset.processing;
@@ -63,7 +73,6 @@
   async function handleSetLog(){ const btn = document.getElementById('btn-set-log'); if (!btn || btn.dataset.processing === '1') return; try { btn.dataset.processing = '1'; btn.disabled = true; const ch = document.getElementById('log-channel-input').value.trim(); if(!ch) return alert('Enter a channel ID'); const r = await fetch(API_BASE + '/api/guilds/' + guildId + '/logchannel',{method:'POST', credentials: 'include', headers:{'Content-Type':'application/json'},body:JSON.stringify({channelId:ch})}); if(r.ok){ alert('Log channel updated'); loadLogChannel(); } else alert('Failed'); } finally { const btn = document.getElementById('btn-set-log'); if (btn) { btn.disabled = false; delete btn.dataset.processing; } } }
   async function handleClearLog(){ const btn = document.getElementById('btn-clear-log'); if (!btn || btn.dataset.processing === '1') return; try { btn.dataset.processing = '1'; btn.disabled = true; if(!confirm('Clear the log channel?')) return; const r = await fetch(API_BASE + '/api/guilds/' + guildId + '/logchannel',{method:'POST', credentials: 'include', headers:{'Content-Type':'application/json'},body:JSON.stringify({clear:true})}); if(r.ok){ alert('Cleared'); loadLogChannel(); } else alert('Failed'); } finally { const btn = document.getElementById('btn-clear-log'); if (btn) { btn.disabled = false; delete btn.dataset.processing; } } }
   async function loadLogChannel(){ const r = await fetch(API_BASE + '/api/guilds/'+guildId+'/logchannel', { credentials: 'include' }); if(!r.ok) return; const j = await r.json(); document.getElementById('log-channel-input').value = j.channelId || ''; }
-
   async function loadCases(){ const res = await fetch(API_BASE + '/api/guilds/'+guildId+'/cases', { credentials: 'include' }); if(!res.ok) return; const json = await res.json(); const list = json.cases || []; const container = document.getElementById('cases-list'); container.innerHTML=''; list.forEach(c=>{ const el=document.createElement('div'); el.className='section-card'; const title=document.createElement('h4'); title.style.margin='0 0 8px'; title.textContent = '#'+c.id+' • '+c.type; const pid=document.createElement('p'); pid.style.color='var(--muted)'; pid.style.margin='0'; pid.textContent = 'Target: <@'+c.targetId+'>'; const status=document.createElement('p'); status.style.color='var(--muted)'; status.style.margin='6px 0 0'; status.textContent = (new Date(c.timestamp)).toLocaleString()+' • Reason: '+c.reason; el.appendChild(title); el.appendChild(pid); el.appendChild(status); container.appendChild(el); });
     try{
       if (typeof io === 'undefined') {
@@ -74,12 +83,12 @@
       socket.on('moderation-case', c=>{ if(c.guildId!==guildId) return; const container=document.getElementById('cases-list'); const el=document.createElement('div'); el.className='section-card'; const title=document.createElement('h4'); title.style.margin='0 0 8px'; title.textContent='#'+c.id+' • '+c.type; const pid=document.createElement('p'); pid.style.color='var(--muted)'; pid.style.margin='0'; pid.textContent='Target: <@'+c.targetId+'>'; const status=document.createElement('p'); status.style.color='var(--muted)'; status.style.margin='6px 0 0'; status.textContent=(new Date(c.timestamp)).toLocaleString()+' • Reason: '+c.reason; el.appendChild(title); el.appendChild(pid); el.appendChild(status); container.prepend(el); });
     }catch(e){ console.warn('socket failed', e); } }
 
-  // Save settings (checkboxes) handler
+  // Save settings (checkboxes)
   async function handleSaveSettings(){
     const btn = document.getElementById('btn-save');
     if (!btn || btn.dataset.processing === '1') return;
     try{
-      btn.dataset.processing = '1'; btn.disabled = true;
+     btn.dataset.processing = '1'; btn.disabled = true;
       const r = await fetch(API_BASE + '/api/guilds/' + guildId + '/settings', { credentials: 'include' });
       if(!r.ok) return alert('Failed to load settings');
       const j = await r.json();
@@ -130,5 +139,6 @@
   });
 
   // init
-  load(); loadGiveaways(); loadLeveling(); loadLogChannel(); loadCases();
+  load();
+  loadGiveaways(); loadLeveling(); loadLogChannel(); loadCases();
 })();
