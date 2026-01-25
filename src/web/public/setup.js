@@ -12,20 +12,11 @@
       document.getElementById('opt-moderation').checked = settings.commands?.moderation ?? true;
       document.getElementById('opt-utility').checked = settings.commands?.utility ?? true;
 
-      // build commands list
+      // build plugins list (site shows only these plugins)
       const commands = [
         { key: 'moderation', name: 'Moderation', cat: 'moderation' },
+        { key: 'level', name: 'Levels', cat: 'utility' },
         { key: 'giveaway', name: 'Giveaways', cat: 'utility' },
-        { key: 'serverinfo', name: 'Server Info', cat: 'utility' },
-        { key: 'level', name: 'Level (xp/leaderboard)', cat: 'utility' },
-        { key: 'leaderboard', name: 'Leaderboard', cat: 'utility' },
-        { key: 'userinfo', name: 'User Info', cat: 'utility' },
-        { key: 'ping', name: 'Ping', cat: 'utility' },
-        { key: 'xprate', name: 'XP Rate (Admin)', cat: 'utility' },
-        { key: 'setlevel', name: 'Set Level (Admin)', cat: 'utility' },
-        { key: 'setlevelchannel', name: 'Set Level Channel', cat: 'utility' },
-        { key: 'setlogchannel', name: 'Set Log Channel', cat: 'moderation' },
-        { key: 'logs', name: 'Moderation Logs', cat: 'moderation' },
       ];
 
       const container = document.getElementById('commands-list'); container.innerHTML = '';
