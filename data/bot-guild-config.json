@@ -13,6 +13,14 @@
           "channel": "",
           "message": null
         }
+      },
+      "giveaway": {
+        "giveaway": {
+          "duration": 0.5,
+          "channel": "1464390485136244747",
+          "prize": "RDR3",
+          "mention": true
+        }
       }
     }
   },

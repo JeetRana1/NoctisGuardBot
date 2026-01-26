@@ -2,12 +2,43 @@ const fs = require('fs');
 const path = require('path');
 const { EmbedBuilder } = require('discord.js');
 const DATA_FILE = path.join(__dirname, '../../data/giveaways.json');
+const DEFAULTS_FILE = path.join(__dirname, '../../data/giveaway-defaults.json');
 
 let clientRef;
 let giveaways = [];
+let defaults = {};
 const scheduled = new Map();
 // Track giveaways currently being posted to avoid duplicate posts between create and file watcher
 const postingInProgress = new Set();
+
+function loadDefaults() {
+  try {
+    if (fs.existsSync(DEFAULTS_FILE)) {
+      const raw = fs.readFileSync(DEFAULTS_FILE, 'utf8');
+      defaults = JSON.parse(raw || '{}');
+    } else defaults = {};
+  } catch (e) {
+    console.warn('Failed to load giveaway defaults', e);
+    defaults = {};
+  }
+}
+
+function saveDefaults() {
+  try {
+    fs.writeFileSync(DEFAULTS_FILE, JSON.stringify(defaults, null, 2), 'utf8');
+  } catch (e) {
+    console.warn('Failed to save giveaway defaults', e);
+  }
+}
+
+function setGuildDefaults(guildId, cfg) {
+  defaults[guildId] = cfg || {};
+  saveDefaults();
+}
+
+function getGuildDefaults(guildId) {
+  return defaults[guildId] || null;
+}
 
 function load() {
   if (!fs.existsSync(DATA_FILE)) {
@@ -209,6 +240,7 @@ async function rerollGiveaway(id) {
 function init(client) {
   clientRef = client;
   load();
+  loadDefaults();
   // schedule active giveaways
   for (const gw of giveaways) scheduleGiveaway(gw);
 
@@ -266,4 +298,4 @@ function listForGuild(guildId) {
   return giveaways.filter(g => g.guildId === guildId);
 }
 
-module.exports = { init, createGiveaway, endGiveaway, rerollGiveaway, listForGuild };
+module.exports = { init, createGiveaway, endGiveaway, rerollGiveaway, listForGuild, setGuildDefaults, getGuildDefaults };

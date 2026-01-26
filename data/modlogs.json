@@ -218,6 +218,26 @@
       "reason": "Used command: /setbyechannel",
       "timestamp": 1769381761003,
       "command": "setbyechannel"
+    },
+    {
+      "id": "mkulsccj564rj6",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /giveaway",
+      "timestamp": 1769397836419,
+      "command": "giveaway"
+    },
+    {
+      "id": "mkumap9ag0ytcr",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /giveaway",
+      "timestamp": 1769398692958,
+      "command": "giveaway"
     }
   ]
 }

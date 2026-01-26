@@ -105,6 +105,44 @@ async function handleWebhook(req, res){
       }
     }catch(e){ console.warn('Failed to apply plugin_config for', guildId, e); }
 
+    // Apply giveaway plugin config to giveaway manager if present
+    try{
+      const giveaway = require('./giveaways');
+      if (pluginId === 'giveaway' || pluginId === 'giveaways'){
+        const gconf = cfg.giveaway || cfg;
+        if (typeof giveaway.setGuildDefaults === 'function'){
+          giveaway.setGuildDefaults(guildId, gconf);
+          console.log('Applied giveaway defaults to giveaway manager for', guildId);
+        } else {
+          if (!giveaway.configs) giveaway.configs = {};
+          giveaway.configs[guildId] = gconf;
+          console.log('Stored giveaway config in giveaway manager (fallback) for', guildId);
+        }
+      }
+    }catch(e){ /* non-fatal */ console.warn('Failed to apply giveaway config to giveaways manager', e); }
+
+    // Handle giveaway_action requests (list / reroll)
+    if (type === 'giveaway_action' && guildId){
+      const action = req.body.action || null;
+      const payload = req.body.payload || {};
+      try{
+        const giveaways = require('./giveaways');
+        if (action === 'list'){
+          const list = giveaways.listForGuild(guildId) || [];
+          return res.json({ ok: true, giveaways: list });
+        }
+        if (action === 'reroll'){
+          const gid = payload && payload.giveawayId;
+          if (!gid) return res.status(400).json({ error: 'Missing giveawayId' });
+          try{
+            const winners = await giveaways.rerollGiveaway(gid);
+            return res.json({ ok: true, winners });
+          }catch(e){ console.warn('Reroll failed', e); return res.status(500).json({ error: 'Reroll failed' }); }
+        }
+        return res.status(400).json({ error: 'Unknown action' });
+      }catch(e){ console.warn('Failed to process giveaway_action', e); return res.status(500).json({ error: 'Internal error' }); }
+    }
+
     // return presences for dashboard convenience
     const presences = await getPresencesForGuild(guildId);
     return res.json({ ok: true, presences });
@@ -116,9 +154,11 @@ async function handleWebhook(req, res){
     const payload = req.body.payload || {};
     const testType = payload.testType || 'welcome';
     const userId = payload.userId || null;
+    console.log('Webhook plugin_test received for guild', guildId, 'plugin', pluginId, 'testType', testType, 'payload:', payload);
 
     let didSend = false;
     try{
+      // welcome / bye tests
       const welcome = require('./welcomeManager');
       if (_client && _client.guilds && _client.guilds.cache.has(guildId)){
         const guild = _client.guilds.cache.get(guildId);
@@ -135,14 +175,42 @@ async function handleWebhook(req, res){
             didSend = await welcome.sendBye(fake, { channelId: (guildConfig[guildId] && guildConfig[guildId].config && guildConfig[guildId].config.bye && guildConfig[guildId].config.bye.channel) ? guildConfig[guildId].config.bye.channel : undefined, message: (guildConfig[guildId] && guildConfig[guildId].config && guildConfig[guildId].config.bye && guildConfig[guildId].config.bye.message) ? guildConfig[guildId].config.bye.message : undefined });
           }
         }
+
+        // giveaway test: create a short test giveaway using provided config or configured defaults
+        if (pluginId === 'giveaway' || pluginId === 'giveaways' || testType === 'giveaway'){
+          try{
+            const giveaways = require('./giveaways');
+            // initialize manager if needed
+            if (giveaways.init && _client) try{ giveaways.init(_client); }catch(e){}
+            // prefer explicit config in payload when provided (allows test-with-config without persisting first)
+            const gconf = payload && payload.config ? (payload.config.giveaway || payload.config) : ((guildConfig[guildId] && guildConfig[guildId].config && guildConfig[guildId].config.giveaway) ? guildConfig[guildId].config.giveaway : (giveaways.getGuildDefaults ? giveaways.getGuildDefaults(guildId) : null));
+            // pick a channel: config.channel -> systemChannel -> first available text channel
+            let channelId = gconf && gconf.channel ? gconf.channel : null;
+            if (!channelId && guild && guild.systemChannelId) channelId = guild.systemChannelId;
+            if (!channelId && guild){ const ch = guild.channels.cache.find(c => c.isTextBased && c.permissionsFor && _client.user && c.permissionsFor(_client.user) && c.permissionsFor(_client.user).has && c.permissionsFor(_client.user).has('SendMessages')); if (ch) channelId = ch.id; }
+            const prize = (gconf && gconf.prize) ? gconf.prize : 'Test prize';
+            // convert duration (assumed minutes) to ms; accept seconds if value > 1000
+            let durationMs = 30_000;
+            if (gconf && typeof gconf.duration !== 'undefined'){
+              const n = Number(gconf.duration);
+              if (!isNaN(n)){
+                durationMs = (n > 1000) ? n : (n * 60_000); // if user provided large number assume milliseconds
+              }
+            }
+            const winnerCount = (gconf && gconf.winnerCount) ? gconf.winnerCount : 1;
+            const hostId = (guild && guild.ownerId) ? guild.ownerId : (guild && guild.members && guild.members.cache && guild.members.cache.first() && guild.members.cache.first().id) || null;
+            // normalize channel id to bare digits
+            if (channelId) { const m = String(channelId).match(/(\d{17,19})/); if (m) channelId = m[1]; }
+            console.log('Creating giveaway with', { guildId, channelId, prize, durationMs, winnerCount, hostId, gconf });
+            if (channelId){ await giveaways.createGiveaway({ guildId, channelId, prize, durationMs, winnerCount, hostId }); didSend = true; }
+          }catch(e){ console.warn('Failed to create giveaway test', e); }
+        }
       }
     }catch(e){ console.warn('Failed to execute plugin_test for', guildId, e); }
 
     const presences = await getPresencesForGuild(guildId);
     return res.json({ ok: true, didSend: !!didSend, presences });
   }
-
-  return res.status(400).json({ error: 'Bad request' });
 }
 
 // Optional: fetch plugin state from the dashboard
