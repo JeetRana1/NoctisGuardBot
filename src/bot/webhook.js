@@ -121,31 +121,47 @@ async function handleWebhook(req, res){
       }
     }catch(e){ /* non-fatal */ console.warn('Failed to apply giveaway config to giveaways manager', e); }
 
-    // Handle giveaway_action requests (list / reroll)
-    if (type === 'giveaway_action' && guildId){
-      const action = req.body.action || null;
-      const payload = req.body.payload || {};
-      try{
-        const giveaways = require('./giveaways');
-        if (action === 'list'){
-          const list = giveaways.listForGuild(guildId) || [];
-          return res.json({ ok: true, giveaways: list });
-        }
-        if (action === 'reroll'){
-          const gid = payload && payload.giveawayId;
-          if (!gid) return res.status(400).json({ error: 'Missing giveawayId' });
-          try{
-            const winners = await giveaways.rerollGiveaway(gid);
-            return res.json({ ok: true, winners });
-          }catch(e){ console.warn('Reroll failed', e); return res.status(500).json({ error: 'Reroll failed' }); }
-        }
-        return res.status(400).json({ error: 'Unknown action' });
-      }catch(e){ console.warn('Failed to process giveaway_action', e); return res.status(500).json({ error: 'Internal error' }); }
-    }
 
     // return presences for dashboard convenience
     const presences = await getPresencesForGuild(guildId);
     return res.json({ ok: true, presences });
+  }
+
+  // Handle giveaway_action requests (list / reroll)
+  if (type === 'giveaway_action' && guildId){
+    const action = req.body.action || null;
+    const payload = req.body.payload || {};
+    console.log('Received giveaway_action', { guildId, action, payload });
+    try{
+      const giveaways = require('./giveaways');
+      if (action === 'list'){
+        const list = giveaways.listForGuild(guildId) || [];
+        // Normalize fields for dashboard (end time in seconds is easier for many frontends)
+        const normalized = list.map(gw => ({
+          id: gw.id,
+          prize: gw.prize || null,
+          channelId: gw.channelId || null,
+          hostId: gw.hostId || null,
+          winnerCount: gw.winnerCount || 1,
+          ended: Boolean(gw.ended),
+          endTimestampMs: gw.endTimestamp || null,
+          endAt: gw.endTimestamp ? Math.floor(gw.endTimestamp/1000) : null,
+          messageId: gw.messageId || null,
+          winners: gw.winners || [],
+          requireRole: gw.requireRole || null,
+        }));
+        return res.json({ ok: true, giveaways: normalized });
+      }
+      if (action === 'reroll'){
+        const gid = payload && payload.giveawayId;
+        if (!gid) return res.status(400).json({ error: 'Missing giveawayId' });
+        try{
+          const winners = await giveaways.rerollGiveaway(gid);
+          return res.json({ ok: true, winners });
+        }catch(e){ console.warn('Reroll failed', e); return res.status(500).json({ error: 'Reroll failed' }); }
+      }
+      return res.status(400).json({ error: 'Unknown action' });
+    }catch(e){ console.warn('Failed to process giveaway_action', e); return res.status(500).json({ error: 'Internal error' }); }
   }
 
   // Support test requests from the dashboard to send sample welcome/bye messages
@@ -202,15 +218,32 @@ async function handleWebhook(req, res){
             // normalize channel id to bare digits
             if (channelId) { const m = String(channelId).match(/(\d{17,19})/); if (m) channelId = m[1]; }
             console.log('Creating giveaway with', { guildId, channelId, prize, durationMs, winnerCount, hostId, gconf });
-            if (channelId){ await giveaways.createGiveaway({ guildId, channelId, prize, durationMs, winnerCount, hostId }); didSend = true; }
+            if (channelId){ const created = await giveaways.createGiveaway({ guildId, channelId, prize, durationMs, winnerCount, hostId }); didSend = true; // return created giveaway in response so dashboard can show it immediately
+              if (created){
+                // try to resolve creator's display name synchronously when possible
+                try{
+                  if (hostId && _client){ const u = await _client.users.fetch(hostId).catch(()=>null); if (u) created.creatorName = u.username + (u.discriminator ? ('#'+u.discriminator) : ''); }
+                }catch(e){ /* ignore */ }
+                // attach to response body if we will return it below
+                req._createdGiveaway = created;
+              }
+            }
           }catch(e){ console.warn('Failed to create giveaway test', e); }
         }
       }
     }catch(e){ console.warn('Failed to execute plugin_test for', guildId, e); }
 
     const presences = await getPresencesForGuild(guildId);
-    return res.json({ ok: true, didSend: !!didSend, presences });
+    // include created giveaway from a plugin_test if one was produced so callers (dashboard) can act on it immediately
+    const created = req._createdGiveaway || null;
+    const out = { ok: true, didSend: !!didSend, presences };
+    if (created) out.giveaway = created;
+    return res.json(out);
   }
+
+  // Unknown request type - return a 400 instead of hanging the socket
+  console.warn('Webhook received unknown or unhandled request type', req.body);
+  return res.status(400).json({ error: 'Bad request' });
 }
 
 // Optional: fetch plugin state from the dashboard

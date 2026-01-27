@@ -92,6 +92,8 @@ async function endGiveaway(id) {
     const channel = await guild.channels.fetch(gw.channelId).catch(() => null);
     if (!channel) throw new Error('Channel not found');
     const msg = gw.messageId ? await channel.messages.fetch(gw.messageId).catch(() => null) : null;
+    // attempt to resolve host name for display in dashboard
+    try{ if (gw.hostId && !gw.creatorName){ const u = await clientRef.users.fetch(gw.hostId).catch(()=>null); if (u){ gw.creatorName = u.username + (u.discriminator ? ('#'+u.discriminator) : ''); save(); } } }catch(e){ /* ignore */ }
 
     // collect users from reaction or from message collected user ids
     let users = [];
@@ -164,8 +166,11 @@ async function endGiveaway(id) {
 
 async function createGiveaway({ guildId, channelId, prize, durationMs, winnerCount = 1, hostId, requireRole = null }) {
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const createdAt = Date.now();
   const endTimestamp = Date.now() + durationMs;
-  const gw = { id, guildId, channelId, prize, endTimestamp, winnerCount, hostId, requireRole, ended: false, messageId: null, winners: [] };
+  const gw = { id, guildId, channelId, prize, createdAt, createdAtISO: new Date(createdAt).toISOString(), endsAt: new Date(endTimestamp).toISOString(), endTimestamp, winnerCount, hostId, creatorName: null, requireRole, ended: false, messageId: null, winners: [] };
+  // attempt to resolve host name for display in dashboard
+  try{ if (hostId && clientRef){ const usr = await clientRef.users.fetch(hostId).catch(()=>null); if (usr){ gw.creatorName = usr.username + (usr.discriminator ? ('#'+usr.discriminator) : ''); } } }catch(e){ /* ignore */ }
   // mark posting in progress before saving so file watcher doesn't post the same giveaway
   postingInProgress.add(id);
   giveaways.push(gw);

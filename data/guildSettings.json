@@ -11,9 +11,9 @@
       "spam": true
     },
     "welcomeChannelId": "1465101377704427683",
-    "byeChannelId": "1465101721079644322",
-    "welcomeMessage": null,
+    "byeChannelId": null,
+    "welcomeMessage": "Welcome {user} to our server enjoy your stay!",
     "logChannel": "1464399856406888692",
-    "byeMessage": null
+    "byeMessage": "Goodbye {user}!"
   }
 }

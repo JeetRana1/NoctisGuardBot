@@ -10,15 +10,19 @@
     "config": {
       "welcome": {
         "welcome": {
+          "channel": "1465101377704427683",
+          "message": "Welcome {user} to our server enjoy your stay!"
+        },
+        "bye": {
           "channel": "",
-          "message": null
+          "message": "Goodbye {user}!"
         }
       },
       "giveaway": {
         "giveaway": {
           "duration": 0.5,
           "channel": "1464390485136244747",
-          "prize": "RDR3",
+          "prize": "wefew",
           "mention": true
         }
       }

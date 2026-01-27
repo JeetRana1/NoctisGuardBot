@@ -414,5 +414,143 @@
     "winners": [
       "474580691225673738"
     ]
+  },
+  {
+    "id": "mkvpt5tj11dj",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "Ta\\est",
+    "endTimestamp": 1769465089255,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465467422894063666",
+    "winners": [
+      "474580691225673738"
+    ]
+  },
+  {
+    "id": "mkvqn0ddb0jg",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "Test prize",
+    "endTimestamp": 1769466511873,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465473263588212914",
+    "winners": [
+      "930967305754644520"
+    ]
+  },
+  {
+    "id": "mkvqytfl0y2t",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "HELLO F&UEKLE",
+    "createdAt": 1769467002753,
+    "createdAtISO": "2026-01-26T22:36:42.753Z",
+    "endsAt": "2026-01-26T22:37:42.753Z",
+    "endTimestamp": 1769467062753,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465475574507114548",
+    "winners": [
+      "474580691225673738"
+    ]
+  },
+  {
+    "id": "mkvr96p8q1k1",
+    "guildId": "1336111006644047964",
+    "channelId": "1336111006644047968",
+    "prize": "Test prize",
+    "createdAt": 1769467486508,
+    "createdAtISO": "2026-01-26T22:44:46.508Z",
+    "endsAt": "2026-01-26T23:44:46.508Z",
+    "endTimestamp": 1769471086508,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465477603623305500",
+    "winners": []
+  },
+  {
+    "id": "mkvr9caz4o3t",
+    "guildId": "1336111006644047964",
+    "channelId": "1336111006644047968",
+    "prize": "Test prize",
+    "createdAt": 1769467493771,
+    "createdAtISO": "2026-01-26T22:44:53.771Z",
+    "endsAt": "2026-01-26T22:45:53.771Z",
+    "endTimestamp": 1769467553771,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465477634057179197",
+    "winners": []
+  },
+  {
+    "id": "mkvresdb6sd9",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "GTA5FREEE",
+    "createdAt": 1769467747871,
+    "createdAtISO": "2026-01-26T22:49:07.871Z",
+    "endsAt": "2026-01-26T22:50:07.871Z",
+    "endTimestamp": 1769467807871,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465478699821305927",
+    "winners": []
+  },
+  {
+    "id": "mkvrmmux7mz9",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "MYEKUR",
+    "createdAt": 1769468113977,
+    "createdAtISO": "2026-01-26T22:55:13.977Z",
+    "endsAt": "2026-01-26T22:57:13.977Z",
+    "endTimestamp": 1769468233977,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465480235222044832",
+    "winners": [
+      "930967305754644520"
+    ]
+  },
+  {
+    "id": "mkvuwaq0291o",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "wefew",
+    "createdAt": 1769473603656,
+    "createdAtISO": "2026-01-27T00:26:43.656Z",
+    "endsAt": "2026-01-27T00:27:13.656Z",
+    "endTimestamp": 1769473633656,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465503255160291418",
+    "winners": [
+      "930967305754644520"
+    ]
   }
 ]
