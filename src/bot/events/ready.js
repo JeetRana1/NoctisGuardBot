@@ -47,6 +47,7 @@ module.exports = {
       const webhook = require('../webhook');
       webhook.startWebhookListener(client);
       webhook.reconcileAllGuilds(client);
+      try { webhook.startPoller && webhook.startPoller(client); console.log('Webhook poller started'); } catch (e) { console.warn('Failed to start webhook poller', e); }
       console.log('Webhook listener started and guilds reconciled');
     } catch (e) {
       console.error('Failed to start webhook listener:', e);
