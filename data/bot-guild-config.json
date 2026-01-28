@@ -4,7 +4,8 @@
       "giveaway": true,
       "level": true,
       "info": true,
-      "welcome": true
+      "welcome": true,
+      "moderation": true
     },
     "disabled": [],
     "config": {
@@ -14,21 +15,31 @@
           "message": "Welcome {user} to our server enjoy your stay!"
         },
         "bye": {
-          "channel": "",
-          "message": "Goodbye {user}!"
+          "channel": "1465101721079644322",
+          "message": "Goodbye {user}! CYA"
         }
       },
       "giveaway": {
         "giveaway": {
-          "duration": 0.5,
+          "duration": 60,
           "channel": "1464390485136244747",
-          "prize": "wefew",
+          "prize": "Ta\\estqffef",
           "mention": true
         }
       }
     }
   },
   "934267446980935690": {
+    "plugins": {
+      "giveaway": true
+    },
+    "disabled": []
+  },
+  "743540202173366383": {
+    "plugins": {},
+    "disabled": []
+  },
+  "908121720383238195": {
     "plugins": {},
     "disabled": []
   }

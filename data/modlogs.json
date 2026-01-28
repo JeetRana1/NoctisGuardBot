@@ -238,6 +238,76 @@
       "reason": "Used command: /giveaway",
       "timestamp": 1769398692958,
       "command": "giveaway"
+    },
+    {
+      "id": "mkx2y27u5z1v6l",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /giveaway",
+      "timestamp": 1769547589050,
+      "command": "giveaway"
+    },
+    {
+      "id": "mkx2ya3jmlb9sa",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /giveaway",
+      "timestamp": 1769547599263,
+      "command": "giveaway"
+    },
+    {
+      "id": "mkx2ymthbs8eom",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /giveaway",
+      "timestamp": 1769547615749,
+      "command": "giveaway"
+    },
+    {
+      "id": "mkx2yv363etk0l",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /giveaway",
+      "timestamp": 1769547626466,
+      "command": "giveaway"
+    },
+    {
+      "id": "mkx7v2okhpa45x",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /logs",
+      "timestamp": 1769555847764,
+      "command": "logs"
+    },
+    {
+      "id": "mkx7vco3yynf3r",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /setlogchannel",
+      "timestamp": 1769555860707,
+      "command": "setlogchannel"
+    },
+    {
+      "id": "mkx7x776b7pn71",
+      "guildId": "1336111006644047964",
+      "type": "AdminCommand",
+      "targetId": "474580691225673738",
+      "moderatorId": "474580691225673738",
+      "reason": "Used command: /giveaway",
+      "timestamp": 1769555946930,
+      "command": "giveaway"
     }
   ]
 }

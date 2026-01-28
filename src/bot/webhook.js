@@ -30,6 +30,62 @@ async function saveGuildConfig(){
   }catch(e){ console.warn('Failed to save guild config', e); }
 }
 
+// Simple bot stats (kept in-memory and persisted to disk so dashboard can poll)
+const BOT_STATS_FILE = path.join(__dirname, '..', '..', 'data', 'bot-stats.json');
+let botStats = { guildCount: 0, totalMembers: 0, commandsToday: 0, uptimeStart: Date.now(), lastUpdated: Date.now(), history: [] };
+async function loadBotStatsFile(){
+  try{
+    const raw = await fs.readFile(BOT_STATS_FILE, 'utf8');
+    const obj = JSON.parse(raw || '{}');
+    if (obj && typeof obj === 'object'){
+      botStats = Object.assign(botStats, obj);
+      // Ensure we always have an uptimeStart
+      if (!botStats.uptimeStart) botStats.uptimeStart = Date.now();
+      botStats.history = Array.isArray(obj.history) ? obj.history.slice(-48) : [];
+    }
+  }catch(e){ /* ignore when file missing */ }
+}
+async function saveBotStatsFile(){
+  try{
+    await fs.mkdir(path.dirname(BOT_STATS_FILE), { recursive: true });
+    await fs.writeFile(BOT_STATS_FILE, JSON.stringify(botStats, null, 2), 'utf8');
+  }catch(e){ console.warn('Failed to save bot stats file', e); }
+}
+
+// Helper: notify the dashboard server of events or stats updates so UI can be near-real-time
+async function notifyDashboardEvent(payload){
+  try{
+    if (!DASHBOARD_BASE) return;
+    const base = DASHBOARD_BASE.replace(/\/$/, '');
+    const url = base + '/bot-event';
+    const headers = {};
+    // Try to use any matching secret env var the user may have set
+    headers['x-dashboard-secret'] = process.env.DASHBOARD_SECRET || process.env.BOT_NOTIFY_SECRET || process.env.WEBHOOK_SECRET || '';
+    // best-effort post (don't throw on failure)
+    const r = await axios.post(url, payload, { headers, timeout: 5000, validateStatus: () => true });
+    if (r && r.status >= 200 && r.status < 300){
+      console.log('notifyDashboardEvent success', url, r.status);
+    } else {
+      // not fatal, but log for debugging
+      console.warn('notifyDashboardEvent non-2xx', url, r && r.status, r && r.data);
+    }
+  }catch(e){ /* ignore errors, but log to help debugging */ console.warn('notifyDashboardEvent failed', e && e.message ? e.message : e); }
+} 
+
+// increment helper: call from your command handler
+function incrementCommands(by=1){
+  try{
+    botStats.commandsToday = (Number(botStats.commandsToday)||0) + Number(by);
+    botStats.lastUpdated = Date.now();
+    botStats.history = botStats.history || [];
+    botStats.history.push({ t: Date.now(), v: Number(botStats.commandsToday) || 0 });
+    if (botStats.history.length > 48) botStats.history.shift();
+    saveBotStatsFile().catch(()=>{});
+    // best-effort notify dashboard so UI can show near-real-time stats
+    notifyDashboardEvent({ type: 'stats_update', stats: { commandsToday: botStats.commandsToday, guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
+  }catch(e){ console.warn('incrementCommands error', e); }
+} 
+
 // Middleware to verify secret header
 function verifySecret(req, res, next){
   const h = req.header('x-dashboard-secret') || '';
@@ -300,6 +356,39 @@ async function reconcileAllGuilds(client){
 // Start webhook listener
 function startWebhookListener(client){
   _client = client || _client;
+  // Attach real-time event listeners on the Discord client so we can notify the dashboard immediately
+  try{
+    if (client && !client._dashboardHandlersAttached){
+      client.on('guildCreate', (g) => {
+        try{
+        botStats.guildCount = (typeof botStats.guildCount === 'number') ? (botStats.guildCount + 1) : 1;
+        // try to capture member count at join time if available
+        const memberCount = (typeof g.memberCount === 'number') ? Number(g.memberCount) : null;
+        if (memberCount !== null && typeof botStats.totalMembers === 'number'){
+          botStats.totalMembers = Number(botStats.totalMembers) + memberCount;
+        }
+        botStats.lastUpdated = Date.now();
+        saveBotStatsFile().catch(()=>{});
+        // Notify dashboard of join and also send updated aggregate stats so dashboard can update totalMembers immediately
+        notifyDashboardEvent({ type: 'guild_joined', guildId: String(g.id), memberCount: memberCount });
+        notifyDashboardEvent({ type: 'stats_update', stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
+        }catch(e){ console.warn('guildCreate handler error', e); }
+      });
+      client.on('guildDelete', (g) => {
+        try{
+          const memberCount = (typeof g.memberCount === 'number') ? Number(g.memberCount) : null;
+          botStats.guildCount = (typeof botStats.guildCount === 'number' && botStats.guildCount > 0) ? (botStats.guildCount - 1) : 0;
+          if (memberCount !== null && typeof botStats.totalMembers === 'number'){ botStats.totalMembers = Math.max(0, Number(botStats.totalMembers) - memberCount); }
+          botStats.lastUpdated = Date.now(); saveBotStatsFile().catch(()=>{});
+          notifyDashboardEvent({ type: 'guild_left', guildId: String(g.id), memberCount: memberCount });
+          // also push updated aggregate stats so dashboard can update totalMembers immediately
+          notifyDashboardEvent({ type: 'stats_update', stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
+        }catch(e){ console.warn('guildDelete handler error', e); }
+      });
+      client._dashboardHandlersAttached = true;
+    }
+  }catch(e){ console.warn('Failed to attach dashboard client handlers', e); }
+
   const app = express();
   app.use(express.json());
   app.post('/webhook', verifySecret, handleWebhook);
@@ -322,6 +411,83 @@ function startWebhookListener(client){
       if (!presences) return res.status(404).json({ error: 'Guild not found or bot not in guild' });
       return res.json({ guildId, presences });
     }catch(e){ console.warn('Presence endpoint error', e); return res.status(500).json({ error: 'Failed to get presences' }); }
+  });
+
+  // Stats endpoints for dashboard polling: GET /stats and POST /stats (both protected by x-dashboard-secret)
+  app.get('/stats', verifySecret, async (req, res) => {
+    try{
+      // compute live if client attached
+      let live = { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers, commandsToday: botStats.commandsToday };
+      try{ if (_client && _client.guilds && _client.guilds.cache){ live.guildCount = _client.guilds.cache.size; let tm = 0; _client.guilds.cache.forEach(g => { tm += (g.memberCount || 0); }); live.totalMembers = tm; } }catch(e){}
+      // compute uptime hours from uptimeStart
+      const uptimeMs = Date.now() - (botStats.uptimeStart || Date.now());
+      const uptimeHours = Math.floor(uptimeMs / (1000*60*60));
+      const out = { ok: true, stats: Object.assign({}, live, { uptimeHours: uptimeHours, lastUpdated: botStats.lastUpdated }) };
+      return res.json(out);
+    }catch(e){ console.warn('GET /stats failed', e); return res.status(500).json({ error: 'Failed to get stats' }); }
+  });
+
+  app.post('/stats', verifySecret, async (req, res) => {
+    try{
+      const body = req.body || {};
+      if (typeof body.commandsToday === 'number') botStats.commandsToday = body.commandsToday;
+      if (typeof body.guildCount === 'number') botStats.guildCount = body.guildCount;
+      if (typeof body.totalMembers === 'number') botStats.totalMembers = body.totalMembers;
+      botStats.lastUpdated = Date.now();
+      botStats.history = botStats.history || []; botStats.history.push({ t: Date.now(), v: Number(botStats.commandsToday) || 0 }); if (botStats.history.length > 48) botStats.history.shift();
+      saveBotStatsFile().catch(()=>{});
+      return res.json({ ok: true, stats: botStats });
+    }catch(e){ console.warn('POST /stats failed', e); return res.status(500).json({ error: 'Failed to update stats' }); }
+  });
+
+  // Provide member resolution endpoints so the dashboard can ask the bot directly (requires the dashboard to call with x-dashboard-secret)
+  app.get('/guild-members/:guildId', verifySecret, async (req, res) => {
+    const guildId = req.params.guildId;
+    const limit = Math.min(200, parseInt(req.query.limit || '25', 10));
+    try{
+      if (!_client || !_client.guilds || !_client.guilds.cache.has(guildId)) return res.status(404).json({ error: 'Guild not found or bot not in guild' });
+      const guild = _client.guilds.cache.get(guildId);
+      try{ await guild.members.fetch({ limit }).catch(()=>null); }catch(e){}
+      const members = [];
+      guild.members.cache.forEach(m => {
+        if (m && m.user){ members.push({ id: m.user.id, username: m.user.username, discriminator: m.user.discriminator, avatar: m.user.avatar }); }
+      });
+      return res.json({ guildId, members: members.slice(0, limit) });
+    }catch(e){ console.warn('Failed to fetch guild members via bot', e); return res.status(500).json({ error: 'Failed to fetch guild members' }); }
+  });
+
+  app.get('/guild-member/:guildId/:memberId', verifySecret, async (req, res) => {
+    const { guildId, memberId } = req.params;
+    try{
+      if (!_client || !_client.guilds || !_client.guilds.cache.has(guildId)) return res.status(404).json({ error: 'Guild not found or bot not in guild' });
+      const guild = _client.guilds.cache.get(guildId);
+      try{
+        const member = await guild.members.fetch(memberId).catch(()=>null);
+        if (!member || !member.user) return res.status(404).json({ error: 'Member not found' });
+        const u = member.user;
+        return res.json({ guildId, member: { id: u.id, username: u.username, discriminator: u.discriminator, avatar: u.avatar } });
+      }catch(e){ console.warn('Failed to fetch guild member via bot', e); return res.status(500).json({ error: 'Failed to fetch guild member' }); }
+    }catch(e){ console.warn('Unhandled error in guild-member', e); return res.status(500).json({ error: 'Internal error' }); }
+  });
+
+  // Recompute authoritative stats from the bot's cache and notify dashboard (protected)
+  app.post('/internal/recompute-stats', verifySecret, async (req, res) => {
+    try{
+      let guildCount = 0;
+      let totalMembers = 0;
+      if (_client && _client.guilds && _client.guilds.cache){
+        guildCount = _client.guilds.cache.size;
+        _client.guilds.cache.forEach(g => { totalMembers += (g.memberCount || 0); });
+      }
+      botStats.guildCount = Number(guildCount);
+      botStats.totalMembers = Number(totalMembers);
+      botStats.lastUpdated = Date.now();
+      saveBotStatsFile().catch(()=>{});
+      // Notify dashboard so it can update immediately
+      notifyDashboardEvent({ type: 'stats_update', stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
+      console.log('Recomputed stats:', { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers });
+      return res.json({ ok: true, stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
+    }catch(e){ console.warn('Recompute stats failed', e); return res.status(500).json({ error: 'Failed to recompute stats' }); }
   });
 
   _server = app.listen(PORT, () => console.log(`Bot webhook listening on ${PORT}`));
@@ -368,4 +534,4 @@ async function getGuildPlugins(guildId){
   return null;
 }
 
-module.exports = { startWebhookListener, fetchPluginStateFromDashboard, reconcileAllGuilds, guildConfig, isCommandEnabled, setPluginState, getGuildPlugins };
+module.exports = { startWebhookListener, fetchPluginStateFromDashboard, reconcileAllGuilds, guildConfig, isCommandEnabled, setPluginState, getGuildPlugins, incrementCommands };

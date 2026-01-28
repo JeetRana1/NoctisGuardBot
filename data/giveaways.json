@@ -552,5 +552,80 @@
     "winners": [
       "930967305754644520"
     ]
+  },
+  {
+    "id": "mkvw47s0faaj",
+    "guildId": "1336111006644047964",
+    "channelId": "1336111006644047968",
+    "prize": "Test prize",
+    "createdAt": 1769475652704,
+    "createdAtISO": "2026-01-27T01:00:52.704Z",
+    "endsAt": "2026-01-27T01:06:52.704Z",
+    "endTimestamp": 1769476012704,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465511849658155080",
+    "winners": [
+      "474580691225673738"
+    ]
+  },
+  {
+    "id": "mkx7wf1luht2",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "%JTNKEN",
+    "createdAt": 1769555910441,
+    "createdAtISO": "2026-01-27T23:18:30.441Z",
+    "endsAt": "2026-01-27T23:20:30.441Z",
+    "endTimestamp": 1769556030441,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465848478620975311",
+    "winners": []
+  },
+  {
+    "id": "mkx7x6unybtg",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "90",
+    "createdAt": 1769555946479,
+    "createdAtISO": "2026-01-27T23:19:06.479Z",
+    "endsAt": "2026-01-27T23:21:06.479Z",
+    "endTimestamp": 1769556066479,
+    "winnerCount": 2,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465848629699809331",
+    "winners": [
+      "474580691225673738",
+      "930967305754644520"
+    ]
+  },
+  {
+    "id": "mkxdpq6iuojw",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "Ta\\estqffef",
+    "createdAt": 1769565675978,
+    "createdAtISO": "2026-01-28T02:01:15.978Z",
+    "endsAt": "2026-01-28T03:01:15.978Z",
+    "endTimestamp": 1769569275978,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1465889441922154597",
+    "winners": [
+      "474580691225673738"
+    ]
   }
 ]
