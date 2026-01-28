@@ -39,7 +39,6 @@ async function loadBotStatsFile(){
     const obj = JSON.parse(raw || '{}');
     if (obj && typeof obj === 'object'){
       botStats = Object.assign(botStats, obj);
-      // Ensure we always have an uptimeStart
       if (!botStats.uptimeStart) botStats.uptimeStart = Date.now();
       botStats.history = Array.isArray(obj.history) ? obj.history.slice(-48) : [];
     }
@@ -59,18 +58,15 @@ async function notifyDashboardEvent(payload){
     const base = DASHBOARD_BASE.replace(/\/$/, '');
     const url = base + '/bot-event';
     const headers = {};
-    // Try to use any matching secret env var the user may have set
     headers['x-dashboard-secret'] = process.env.DASHBOARD_SECRET || process.env.BOT_NOTIFY_SECRET || process.env.WEBHOOK_SECRET || '';
-    // best-effort post (don't throw on failure)
     const r = await axios.post(url, payload, { headers, timeout: 5000, validateStatus: () => true });
     if (r && r.status >= 200 && r.status < 300){
       console.log('notifyDashboardEvent success', url, r.status);
     } else {
-      // not fatal, but log for debugging
       console.warn('notifyDashboardEvent non-2xx', url, r && r.status, r && r.data);
     }
-  }catch(e){ /* ignore errors, but log to help debugging */ console.warn('notifyDashboardEvent failed', e && e.message ? e.message : e); }
-} 
+  }catch(e){ console.warn('notifyDashboardEvent failed', e && e.message ? e.message : e); }
+}
 
 // increment helper: call from your command handler
 function incrementCommands(by=1){
@@ -81,10 +77,9 @@ function incrementCommands(by=1){
     botStats.history.push({ t: Date.now(), v: Number(botStats.commandsToday) || 0 });
     if (botStats.history.length > 48) botStats.history.shift();
     saveBotStatsFile().catch(()=>{});
-    // best-effort notify dashboard so UI can show near-real-time stats
     notifyDashboardEvent({ type: 'stats_update', stats: { commandsToday: botStats.commandsToday, guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
   }catch(e){ console.warn('incrementCommands error', e); }
-} 
+}
 
 // Middleware to verify secret header
 function verifySecret(req, res, next){
@@ -99,7 +94,6 @@ async function getPresencesForGuild(guildId){
   try{
     if (_client && _client.guilds && _client.guilds.cache.has(guildId)){
       const guild = _client.guilds.cache.get(guildId);
-      // best-effort: fetch some members into cache
       try{ await guild.members.fetch({ limit: 100 }); }catch(e){ /* ignore fetch errors */ }
       guild.members.cache.forEach(m => {
         presences.push({ id: m.id, status: (m.presence && m.presence.status) ? m.presence.status : 'offline' });
@@ -118,14 +112,11 @@ async function handleWebhook(req, res){
     guildConfig[guildId].disabled = Object.keys(state || {}).filter(k => !state[k]);
     await saveGuildConfig();
 
-    // If bot is running and knows about the guild, reconcile runtime state here
     if (_client && _client.guilds && _client.guilds.cache.has(guildId)){
       const g = _client.guilds.cache.get(guildId);
-      // Queue an update for the guild commands so disabled commands are removed
       try {
         const gcu = require('./guildCommandUpdater');
         gcu.queueUpdate(guildId, guildConfig[guildId].disabled);
-        // try to run pending updates immediately (best-effort)
         gcu.runPending(_client).catch(e => console.warn('Failed to run pending command updates', e));
       } catch (e) {
         console.warn('Failed to queue command update for guild', guildId, e);
@@ -138,7 +129,6 @@ async function handleWebhook(req, res){
     return res.json({ ok: true, presences });
   }
 
-  // Support dashboard-driven plugin configuration updates (e.g., welcome/bye settings)
   if (type === 'plugin_config' && guildId){
     const pluginId = req.body.pluginId || 'welcome';
     const cfg = req.body.config || {};
@@ -147,7 +137,6 @@ async function handleWebhook(req, res){
     guildConfig[guildId].config[pluginId] = cfg;
     await saveGuildConfig();
 
-    // Apply configuration to runtime managers if available
     try{
       const moderation = require('./moderationManager');
       if (pluginId === 'welcome' && moderation && typeof moderation.setGuildConfig === 'function'){
@@ -161,7 +150,6 @@ async function handleWebhook(req, res){
       }
     }catch(e){ console.warn('Failed to apply plugin_config for', guildId, e); }
 
-    // Apply giveaway plugin config to giveaway manager if present
     try{
       const giveaway = require('./giveaways');
       if (pluginId === 'giveaway' || pluginId === 'giveaways'){
@@ -177,13 +165,10 @@ async function handleWebhook(req, res){
       }
     }catch(e){ /* non-fatal */ console.warn('Failed to apply giveaway config to giveaways manager', e); }
 
-
-    // return presences for dashboard convenience
     const presences = await getPresencesForGuild(guildId);
     return res.json({ ok: true, presences });
   }
 
-  // Handle giveaway_action requests (list / reroll)
   if (type === 'giveaway_action' && guildId){
     const action = req.body.action || null;
     const payload = req.body.payload || {};
@@ -192,20 +177,7 @@ async function handleWebhook(req, res){
       const giveaways = require('./giveaways');
       if (action === 'list'){
         const list = giveaways.listForGuild(guildId) || [];
-        // Normalize fields for dashboard (end time in seconds is easier for many frontends)
-        const normalized = list.map(gw => ({
-          id: gw.id,
-          prize: gw.prize || null,
-          channelId: gw.channelId || null,
-          hostId: gw.hostId || null,
-          winnerCount: gw.winnerCount || 1,
-          ended: Boolean(gw.ended),
-          endTimestampMs: gw.endTimestamp || null,
-          endAt: gw.endTimestamp ? Math.floor(gw.endTimestamp/1000) : null,
-          messageId: gw.messageId || null,
-          winners: gw.winners || [],
-          requireRole: gw.requireRole || null,
-        }));
+        const normalized = list.map(gw => ({ id: gw.id, prize: gw.prize || null, channelId: gw.channelId || null, hostId: gw.hostId || null, winnerCount: gw.winnerCount || 1, ended: Boolean(gw.ended), endTimestampMs: gw.endTimestamp || null, endAt: gw.endTimestamp ? Math.floor(gw.endTimestamp/1000) : null, messageId: gw.messageId || null, winners: gw.winners || [], requireRole: gw.requireRole || null }));
         return res.json({ ok: true, giveaways: normalized });
       }
       if (action === 'reroll'){
@@ -220,7 +192,6 @@ async function handleWebhook(req, res){
     }catch(e){ console.warn('Failed to process giveaway_action', e); return res.status(500).json({ error: 'Internal error' }); }
   }
 
-  // Support test requests from the dashboard to send sample welcome/bye messages
   if (type === 'plugin_test' && guildId){
     const pluginId = req.body.pluginId || 'welcome';
     const payload = req.body.payload || {};
@@ -230,15 +201,12 @@ async function handleWebhook(req, res){
 
     let didSend = false;
     try{
-      // welcome / bye tests
       const welcome = require('./welcomeManager');
       if (_client && _client.guilds && _client.guilds.cache.has(guildId)){
         const guild = _client.guilds.cache.get(guildId);
         let member = null;
-        if (userId){ try{ member = await guild.members.fetch(userId).catch(()=>null); }catch(e){}
-        }
+        if (userId){ try{ member = await guild.members.fetch(userId).catch(()=>null); }catch(e){} }
         if (!member){ try{ member = await guild.members.fetch(guild.ownerId).catch(()=>null); }catch(e){} }
-
         if (testType === 'welcome' && member && welcome && typeof welcome.sendWelcome === 'function'){
           didSend = await welcome.sendWelcome(member, { channelId: (guildConfig[guildId] && guildConfig[guildId].config && guildConfig[guildId].config.welcome && guildConfig[guildId].config.welcome.channel) ? guildConfig[guildId].config.welcome.channel : undefined, message: (guildConfig[guildId] && guildConfig[guildId].config && guildConfig[guildId].config.welcome && guildConfig[guildId].config.welcome.message) ? guildConfig[guildId].config.welcome.message : undefined });
         } else if (testType === 'bye'){
@@ -248,56 +216,39 @@ async function handleWebhook(req, res){
           }
         }
 
-        // giveaway test: create a short test giveaway using provided config or configured defaults
         if (pluginId === 'giveaway' || pluginId === 'giveaways' || testType === 'giveaway'){
           try{
             const giveaways = require('./giveaways');
-            // initialize manager if needed
             if (giveaways.init && _client) try{ giveaways.init(_client); }catch(e){}
-            // prefer explicit config in payload when provided (allows test-with-config without persisting first)
             const gconf = payload && payload.config ? (payload.config.giveaway || payload.config) : ((guildConfig[guildId] && guildConfig[guildId].config && guildConfig[guildId].config.giveaway) ? guildConfig[guildId].config.giveaway : (giveaways.getGuildDefaults ? giveaways.getGuildDefaults(guildId) : null));
-            // pick a channel: config.channel -> systemChannel -> first available text channel
             let channelId = gconf && gconf.channel ? gconf.channel : null;
             if (!channelId && guild && guild.systemChannelId) channelId = guild.systemChannelId;
             if (!channelId && guild){ const ch = guild.channels.cache.find(c => c.isTextBased && c.permissionsFor && _client.user && c.permissionsFor(_client.user) && c.permissionsFor(_client.user).has && c.permissionsFor(_client.user).has('SendMessages')); if (ch) channelId = ch.id; }
             const prize = (gconf && gconf.prize) ? gconf.prize : 'Test prize';
-            // convert duration (assumed minutes) to ms; accept seconds if value > 1000
             let durationMs = 30_000;
             if (gconf && typeof gconf.duration !== 'undefined'){
               const n = Number(gconf.duration);
               if (!isNaN(n)){
-                durationMs = (n > 1000) ? n : (n * 60_000); // if user provided large number assume milliseconds
+                durationMs = (n > 1000) ? n : (n * 60_000);
               }
             }
             const winnerCount = (gconf && gconf.winnerCount) ? gconf.winnerCount : 1;
             const hostId = (guild && guild.ownerId) ? guild.ownerId : (guild && guild.members && guild.members.cache && guild.members.cache.first() && guild.members.cache.first().id) || null;
-            // normalize channel id to bare digits
             if (channelId) { const m = String(channelId).match(/(\d{17,19})/); if (m) channelId = m[1]; }
             console.log('Creating giveaway with', { guildId, channelId, prize, durationMs, winnerCount, hostId, gconf });
-            if (channelId){ const created = await giveaways.createGiveaway({ guildId, channelId, prize, durationMs, winnerCount, hostId }); didSend = true; // return created giveaway in response so dashboard can show it immediately
-              if (created){
-                // try to resolve creator's display name synchronously when possible
-                try{
-                  if (hostId && _client){ const u = await _client.users.fetch(hostId).catch(()=>null); if (u) created.creatorName = u.username + (u.discriminator ? ('#'+u.discriminator) : ''); }
-                }catch(e){ /* ignore */ }
-                // attach to response body if we will return it below
-                req._createdGiveaway = created;
-              }
-            }
+            if (channelId){ const created = await giveaways.createGiveaway({ guildId, channelId, prize, durationMs, winnerCount, hostId }); didSend = true; if (created){ try{ if (hostId && _client){ const u = await _client.users.fetch(hostId).catch(()=>null); if (u) created.creatorName = u.username + (u.discriminator ? ('#'+u.discriminator) : ''); } }catch(e){ } req._createdGiveaway = created; } }
           }catch(e){ console.warn('Failed to create giveaway test', e); }
         }
       }
     }catch(e){ console.warn('Failed to execute plugin_test for', guildId, e); }
 
     const presences = await getPresencesForGuild(guildId);
-    // include created giveaway from a plugin_test if one was produced so callers (dashboard) can act on it immediately
     const created = req._createdGiveaway || null;
     const out = { ok: true, didSend: !!didSend, presences };
     if (created) out.giveaway = created;
     return res.json(out);
   }
 
-  // Unknown request type - return a 400 instead of hanging the socket
   console.warn('Webhook received unknown or unhandled request type', req.body);
   return res.status(400).json({ error: 'Bad request' });
 }
@@ -305,7 +256,6 @@ async function handleWebhook(req, res){
 // Optional: fetch plugin state from the dashboard
 async function fetchPluginStateFromDashboard(guildId){
   try{
-    // Try the internal authenticated endpoint first (safer for server-to-server)
     const headers = {};
     if (process.env.WEBHOOK_SECRET) headers['x-dashboard-secret'] = process.env.WEBHOOK_SECRET;
     const internalUrl = `${DASHBOARD_BASE.replace(/\/$/, '')}/internal/server-plugins/${encodeURIComponent(guildId)}`;
@@ -318,9 +268,8 @@ async function fetchPluginStateFromDashboard(guildId){
         await saveGuildConfig();
         return true;
       }
-    }catch(e){ /* fall back to public endpoint */ console.warn('Internal plugin fetch failed, falling back:', e?.message || e); }
+    }catch(e){ console.warn('Internal plugin fetch failed, falling back:', e?.message || e); }
 
-    // Fall back to the public endpoint (requires dashboard auth; may 401)
     const publicRes = await axios.get(`${DASHBOARD_BASE}/api/server-plugins/${encodeURIComponent(guildId)}`, { timeout: 5000, withCredentials: true });
     if (publicRes?.data?.state){
       guildConfig[guildId] = guildConfig[guildId] || {};
@@ -341,7 +290,6 @@ async function reconcileAllGuilds(client){
     if (!guildConfig[id] || !guildConfig[id].plugins){
       await fetchPluginStateFromDashboard(id);
     }
-    // Queue an update for the guild commands so disabled commands are removed
     try {
       const gcu = require('./guildCommandUpdater');
       const disabled = (guildConfig[id] && guildConfig[id].disabled) || [];
@@ -353,25 +301,131 @@ async function reconcileAllGuilds(client){
   }
 }
 
+// ------------------ Polling fallback (handles missed webhooks) ------------------ 🔁
+// Periodically fetch recent server activity and reconcile plugin state/config
+const POLL_INTERVAL_MS = Number(process.env.DASHBOARD_POLL_INTERVAL_MS) || 15000; // 15s default
+const POLLER_STATE_FILE = path.join(__dirname, '..', '..', 'data', 'bot-poller-state.json');
+let pollerTimer = null;
+let pollerRunning = false;
+let pollerState = {}; // { lastSeenTs: { [guildId]: timestamp } }
+
+async function loadPollerState(){
+  try{ const raw = await fs.readFile(POLLER_STATE_FILE, 'utf8'); pollerState = JSON.parse(raw || '{}'); }catch(e){ pollerState = { lastSeenTs: {} }; }
+}
+async function savePollerState(){
+  try{ await fs.mkdir(path.dirname(POLLER_STATE_FILE), { recursive: true }); await fs.writeFile(POLLER_STATE_FILE, JSON.stringify(pollerState, null, 2)); }catch(e){ console.warn('Failed to save poller state', e); }
+}
+
+async function fetchActivityForGuild(guildId){
+  try{
+    const res = await axios.get(`${DASHBOARD_BASE}/api/server-activity/${encodeURIComponent(guildId)}?limit=100`, { timeout: 7000 });
+    return (res && res.data && Array.isArray(res.data.activity)) ? res.data.activity : [];
+  }catch(e){ console.warn('Poller: failed to fetch activity for', guildId, e?.message || e); return []; }
+}
+
+async function processActivityEntry(entry){
+  try{
+    if (!entry || !entry.type) return false;
+    const { type, guildId } = entry;
+    if (type === 'plugin_test'){
+      const pluginId = entry.pluginId || 'welcome';
+      const payload = entry.payload || {};
+      const testType = payload.testType || 'welcome';
+      const userId = payload.userId || null;
+
+      try{
+        const welcome = require('./welcomeManager');
+        if (_client && _client.guilds && _client.guilds.cache.has(guildId)){
+          const guild = _client.guilds.cache.get(guildId);
+          let member = null;
+          if (userId){ try{ member = await guild.members.fetch(userId).catch(()=>null); }catch(e){} }
+          if (!member){ try{ member = await guild.members.fetch(guild.ownerId).catch(()=>null); }catch(e){} }
+
+          if (testType === 'welcome' && member && welcome && typeof welcome.sendWelcome === 'function'){
+            await welcome.sendWelcome(member, { channelId: guildConfig[guildId]?.config?.welcome?.channel || undefined, message: guildConfig[guildId]?.config?.welcome?.message });
+          } else if (testType === 'bye'){
+            const fake = member || { user: { id: '0', username: 'Test' }, guild };
+            if (welcome && typeof welcome.sendBye === 'function'){
+              await welcome.sendBye(fake, { channelId: guildConfig[guildId]?.config?.bye?.channel || undefined, message: guildConfig[guildId]?.config?.bye?.message });
+            }
+          }
+        }
+      }catch(e){ console.warn('Poller: failed to execute plugin_test', e); }
+
+      return true;
+    }
+
+    if (type === 'plugin_update' || type === 'plugin_config'){
+      try{ await fetchPluginStateFromDashboard(guildId); }catch(e){}
+      try{
+        const r = await axios.get(`${DASHBOARD_BASE}/api/server-plugin-config/${encodeURIComponent(guildId)}`, { timeout: 7000 });
+        if (r && r.data && r.data.config){ guildConfig[guildId] = guildConfig[guildId] || {}; guildConfig[guildId].config = r.data.config; await saveGuildConfig(); }
+      }catch(e){ console.warn('Poller: failed to fetch plugin config for', guildId, e?.message || e); }
+      return true;
+    }
+
+    return false;
+  }catch(e){ console.warn('Poller: processing failed', e); return false; }
+}
+
+async function pollGuildOnce(guildId){
+  try{
+    const arr = await fetchActivityForGuild(guildId);
+    if (!Array.isArray(arr) || arr.length === 0) return;
+    const sorted = arr.slice().sort((a,b)=> (a.ts||0) - (b.ts||0));
+    const last = (pollerState.lastSeenTs && pollerState.lastSeenTs[guildId]) || 0;
+    let processedAny = false;
+    for (const e of sorted){
+      const ts = e.ts || e.at || 0;
+      if (!ts) continue;
+      if (ts <= last) continue;
+      const ok = await processActivityEntry(e);
+      if (ok) processedAny = true;
+      pollerState.lastSeenTs = pollerState.lastSeenTs || {};
+      pollerState.lastSeenTs[guildId] = Math.max(pollerState.lastSeenTs[guildId] || 0, ts);
+    }
+    if (processedAny) await savePollerState();
+  }catch(e){ console.warn('Poller: pollGuildOnce failed', guildId, e); }
+}
+
+async function pollOnce(){
+  try{
+    const guildIds = new Set(Object.keys(guildConfig || {}));
+    if (_client && _client.guilds && _client.guilds.cache){ for (const g of _client.guilds.cache.keys()) guildIds.add(g); }
+    const ids = Array.from(guildIds);
+    for (const id of ids){ await pollGuildOnce(id); }
+  }catch(e){ console.warn('Poller: pollOnce error', e); }
+}
+
+async function startPoller(){
+  if (pollerRunning) return;
+  await loadPollerState();
+  pollerRunning = true;
+  await pollOnce();
+  pollerTimer = setInterval(() => { pollOnce().catch(e=>console.warn('Poller interval error', e)); }, POLL_INTERVAL_MS);
+  console.log('Poller started — interval', POLL_INTERVAL_MS);
+}
+
+function stopPoller(){ if (!pollerRunning) return; pollerRunning = false; if (pollerTimer) clearInterval(pollerTimer); pollerTimer = null; console.log('Poller stopped'); }
+
+// ------------------ End Poller -----------------------------------------------
+
 // Start webhook listener
 function startWebhookListener(client){
   _client = client || _client;
-  // Attach real-time event listeners on the Discord client so we can notify the dashboard immediately
   try{
     if (client && !client._dashboardHandlersAttached){
       client.on('guildCreate', (g) => {
         try{
-        botStats.guildCount = (typeof botStats.guildCount === 'number') ? (botStats.guildCount + 1) : 1;
-        // try to capture member count at join time if available
-        const memberCount = (typeof g.memberCount === 'number') ? Number(g.memberCount) : null;
-        if (memberCount !== null && typeof botStats.totalMembers === 'number'){
-          botStats.totalMembers = Number(botStats.totalMembers) + memberCount;
-        }
-        botStats.lastUpdated = Date.now();
-        saveBotStatsFile().catch(()=>{});
-        // Notify dashboard of join and also send updated aggregate stats so dashboard can update totalMembers immediately
-        notifyDashboardEvent({ type: 'guild_joined', guildId: String(g.id), memberCount: memberCount });
-        notifyDashboardEvent({ type: 'stats_update', stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
+          botStats.guildCount = (typeof botStats.guildCount === 'number') ? (botStats.guildCount + 1) : 1;
+          const memberCount = (typeof g.memberCount === 'number') ? Number(g.memberCount) : null;
+          if (memberCount !== null && typeof botStats.totalMembers === 'number'){
+            botStats.totalMembers = Number(botStats.totalMembers) + memberCount;
+          }
+          botStats.lastUpdated = Date.now();
+          saveBotStatsFile().catch(()=>{});
+          notifyDashboardEvent({ type: 'guild_joined', guildId: String(g.id), memberCount: memberCount });
+          notifyDashboardEvent({ type: 'stats_update', stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
         }catch(e){ console.warn('guildCreate handler error', e); }
       });
       client.on('guildDelete', (g) => {
@@ -381,7 +435,6 @@ function startWebhookListener(client){
           if (memberCount !== null && typeof botStats.totalMembers === 'number'){ botStats.totalMembers = Math.max(0, Number(botStats.totalMembers) - memberCount); }
           botStats.lastUpdated = Date.now(); saveBotStatsFile().catch(()=>{});
           notifyDashboardEvent({ type: 'guild_left', guildId: String(g.id), memberCount: memberCount });
-          // also push updated aggregate stats so dashboard can update totalMembers immediately
           notifyDashboardEvent({ type: 'stats_update', stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
         }catch(e){ console.warn('guildDelete handler error', e); }
       });
@@ -393,9 +446,7 @@ function startWebhookListener(client){
   app.use(express.json());
   app.post('/webhook', verifySecret, handleWebhook);
 
-  // Health endpoint: accessible from localhost or with valid secret header
   app.get('/webhook/health', (req, res) => {
-    // Normalize IPv4-mapped IPv6 addresses
     const ipRaw = (req.ip || (req.connection && req.connection.remoteAddress) || '').replace('::ffff:', '');
     const x = req.header('x-dashboard-secret') || '';
     const allowedLocal = ipRaw === '127.0.0.1' || ipRaw === '::1' || x === WEBHOOK_SECRET;
@@ -403,7 +454,6 @@ function startWebhookListener(client){
     return res.json({ ok: true, port: PORT, secretSet: !!process.env.WEBHOOK_SECRET });
   });
 
-  // Presence endpoint: returns cached presences for a guild (requires bot to have GUILD_MEMBERS and GUILD_PRESENCES intents)
   app.get('/presences/:guildId', verifySecret, async (req, res) => {
     const guildId = req.params.guildId;
     try{
@@ -413,13 +463,10 @@ function startWebhookListener(client){
     }catch(e){ console.warn('Presence endpoint error', e); return res.status(500).json({ error: 'Failed to get presences' }); }
   });
 
-  // Stats endpoints for dashboard polling: GET /stats and POST /stats (both protected by x-dashboard-secret)
   app.get('/stats', verifySecret, async (req, res) => {
     try{
-      // compute live if client attached
       let live = { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers, commandsToday: botStats.commandsToday };
       try{ if (_client && _client.guilds && _client.guilds.cache){ live.guildCount = _client.guilds.cache.size; let tm = 0; _client.guilds.cache.forEach(g => { tm += (g.memberCount || 0); }); live.totalMembers = tm; } }catch(e){}
-      // compute uptime hours from uptimeStart
       const uptimeMs = Date.now() - (botStats.uptimeStart || Date.now());
       const uptimeHours = Math.floor(uptimeMs / (1000*60*60));
       const out = { ok: true, stats: Object.assign({}, live, { uptimeHours: uptimeHours, lastUpdated: botStats.lastUpdated }) };
@@ -440,7 +487,6 @@ function startWebhookListener(client){
     }catch(e){ console.warn('POST /stats failed', e); return res.status(500).json({ error: 'Failed to update stats' }); }
   });
 
-  // Provide member resolution endpoints so the dashboard can ask the bot directly (requires the dashboard to call with x-dashboard-secret)
   app.get('/guild-members/:guildId', verifySecret, async (req, res) => {
     const guildId = req.params.guildId;
     const limit = Math.min(200, parseInt(req.query.limit || '25', 10));
@@ -449,9 +495,7 @@ function startWebhookListener(client){
       const guild = _client.guilds.cache.get(guildId);
       try{ await guild.members.fetch({ limit }).catch(()=>null); }catch(e){}
       const members = [];
-      guild.members.cache.forEach(m => {
-        if (m && m.user){ members.push({ id: m.user.id, username: m.user.username, discriminator: m.user.discriminator, avatar: m.user.avatar }); }
-      });
+      guild.members.cache.forEach(m => { if (m && m.user){ members.push({ id: m.user.id, username: m.user.username, discriminator: m.user.discriminator, avatar: m.user.avatar }); } });
       return res.json({ guildId, members: members.slice(0, limit) });
     }catch(e){ console.warn('Failed to fetch guild members via bot', e); return res.status(500).json({ error: 'Failed to fetch guild members' }); }
   });
@@ -470,7 +514,6 @@ function startWebhookListener(client){
     }catch(e){ console.warn('Unhandled error in guild-member', e); return res.status(500).json({ error: 'Internal error' }); }
   });
 
-  // Recompute authoritative stats from the bot's cache and notify dashboard (protected)
   app.post('/internal/recompute-stats', verifySecret, async (req, res) => {
     try{
       let guildCount = 0;
@@ -483,7 +526,6 @@ function startWebhookListener(client){
       botStats.totalMembers = Number(totalMembers);
       botStats.lastUpdated = Date.now();
       saveBotStatsFile().catch(()=>{});
-      // Notify dashboard so it can update immediately
       notifyDashboardEvent({ type: 'stats_update', stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
       console.log('Recomputed stats:', { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers });
       return res.json({ ok: true, stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
@@ -513,11 +555,9 @@ async function setPluginState(guildId, pluginName, enabled){
   guildConfig[guildId] = guildConfig[guildId] || {};
   guildConfig[guildId].plugins = guildConfig[guildId].plugins || {};
   guildConfig[guildId].plugins[pluginName] = Boolean(enabled);
-  // derive disabled list
   guildConfig[guildId].disabled = Object.keys(guildConfig[guildId].plugins || {}).filter(k => !guildConfig[guildId].plugins[k]);
   await saveGuildConfig();
 
-  // Queue and attempt a guild command update
   try {
     const gcu = require('./guildCommandUpdater');
     gcu.queueUpdate(guildId, guildConfig[guildId].disabled);
@@ -534,4 +574,4 @@ async function getGuildPlugins(guildId){
   return null;
 }
 
-module.exports = { startWebhookListener, fetchPluginStateFromDashboard, reconcileAllGuilds, guildConfig, isCommandEnabled, setPluginState, getGuildPlugins, incrementCommands };
+module.exports = { startWebhookListener, fetchPluginStateFromDashboard, reconcileAllGuilds, guildConfig, isCommandEnabled, setPluginState, getGuildPlugins, incrementCommands, startPoller, stopPoller };
