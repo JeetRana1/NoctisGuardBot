@@ -627,5 +627,39 @@
     "winners": [
       "474580691225673738"
     ]
+  },
+  {
+    "id": "mkyiomuo539r",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "Ta\\est1241",
+    "createdAt": 1769634489264,
+    "createdAtISO": "2026-01-28T21:08:09.264Z",
+    "endsAt": "2026-01-28T21:09:09.264Z",
+    "endTimestamp": 1769634549264,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1466178068635717855",
+    "winners": []
+  },
+  {
+    "id": "mkyiwbc8m05a",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "%JTNKENqwr",
+    "createdAt": 1769634847592,
+    "createdAtISO": "2026-01-28T21:14:07.592Z",
+    "endsAt": "2026-01-28T21:15:07.592Z",
+    "endTimestamp": 1769634907592,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": false,
+    "messageId": "1466179571119427770",
+    "winners": []
   }
 ]

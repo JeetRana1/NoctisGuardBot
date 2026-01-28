@@ -4,13 +4,13 @@
 //   node scripts/send-webhook-example.js [WEBHOOK_URL] [WEBHOOK_SECRET] [JSON_PAYLOAD]
 // Examples:
 //   node scripts/send-webhook-example.js
-//   node scripts/send-webhook-example.js "http://localhost:4000/webhook" "your_secret_here"
-//   node scripts/send-webhook-example.js "http://localhost:4000/webhook" "secret" '{"type":"plugin_update","guildId":"1234","state":{"moderation":true}}'
+//   node scripts/send-webhook-example.js "https://noctis-guard.vercel.app/webhook" "your_secret_here"
+//   node scripts/send-webhook-example.js "https://noctis-guard.vercel.app/webhook" "secret" '{"type":"plugin_update","guildId":"1234","state":{"moderation":true}}'
 
 require('dotenv').config();
 const axios = require('axios');
 
-const url = process.argv[2] || process.env.WEBHOOK_URL || `http://localhost:${process.env.BOT_WEBHOOK_PORT || 4000}/webhook`;
+const url = process.argv[2] || process.env.WEBHOOK_URL || `https://noctis-guard.vercel.app/webhook`;
 const secret = process.argv[3] || process.env.WEBHOOK_SECRET || '';
 let payload = { type: 'plugin_update', guildId: '1234567890', state: { moderation: true, music: false } };
 if (process.argv[4]) {

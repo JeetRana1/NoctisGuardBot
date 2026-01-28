@@ -9,7 +9,7 @@ const axios = require('axios');
 
 const PORT = process.env.BOT_WEBHOOK_PORT || 4000;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'change-me-to-a-secret';
-const DASHBOARD_BASE = process.env.DASHBOARD_BASE || 'http://localhost:3000';
+const DASHBOARD_BASE = process.env.DASHBOARD_BASE || 'https://noctis-guard.vercel.app';
 const PLUGINS_FILE = path.join(__dirname, '..', '..', 'data', 'bot-guild-config.json');
 
 // Simple in-memory config (persisted to disk)
@@ -393,7 +393,7 @@ function startWebhookListener(client){
   app.use(express.json());
   app.post('/webhook', verifySecret, handleWebhook);
 
-  // Health endpoint: accessible from localhost or with valid secret header
+  // Health endpoint: accessible locally or with valid secret header
   app.get('/webhook/health', (req, res) => {
     // Normalize IPv4-mapped IPv6 addresses
     const ipRaw = (req.ip || (req.connection && req.connection.remoteAddress) || '').replace('::ffff:', '');
