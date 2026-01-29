@@ -15,6 +15,22 @@ function run(name, cmd, args) {
   return proc;
 }
 
+if (process.env.GATEWAY_TEST && ['1','true','yes'].includes(String(process.env.GATEWAY_TEST).toLowerCase())) {
+  console.log('GATEWAY_TEST detected — running gateway-test.js before starting bot...');
+  const cp = require('child_process');
+  const path = require('path');
+  const res = cp.spawnSync(process.execPath, [path.join(__dirname, 'gateway-test.js')], { stdio: 'inherit', env: process.env });
+  if (res.error) {
+    console.error('Gateway test spawn error', res.error);
+    process.exit(1);
+  }
+  if (res.status !== 0) {
+    console.error('Gateway test failed (non-zero exit). Aborting startup.');
+    process.exit(res.status || 1);
+  }
+  console.log('Gateway test succeeded — continuing to start bot.');
+}
+
 console.log('Starting bot (web removed)...');
 const bot = run('bot', 'npm', ['run', 'start']);
 
