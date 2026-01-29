@@ -59,10 +59,21 @@ for (const file of eventFiles) {
   }
 }
 
-// Diagnostics: confirm presence of DISCORD_TOKEN and catch login errors
+// Diagnostics: confirm presence of DISCORD_TOKEN and add extra debug/error handlers to capture connectivity/login issues
 const hasToken = !!process.env.DISCORD_TOKEN;
 console.log('DISCORD_TOKEN present:', hasToken);
 if (!hasToken) console.error('DISCORD_TOKEN is missing. Set it in environment variables.');
+
+// Global process handlers to catch unexpected errors/rejections that may explain login hangs
+process.on('unhandledRejection', (reason) => { console.error('Unhandled Rejection:', reason && reason.stack ? reason.stack : reason); });
+process.on('uncaughtException', (err) => { console.error('Uncaught Exception:', err && err.stack ? err.stack : err); });
+
+// Log discord.js client-level errors/warnings and shard/socket issues
+client.on('error', (err) => console.error('Discord client error event:', err && err.stack ? err.stack : err));
+client.on('warn', (info) => console.warn('Discord client warn event:', info));
+client.on('shardError', (err) => console.error('Shard error event:', err && err.stack ? err.stack : err));
+client.on('shardDisconnect', (event, shardId) => console.warn('Shard disconnected', shardId, event));
+if (client.ws && typeof client.ws.on === 'function') client.ws.on('error', (err) => console.error('WebSocket error:', err && err.stack ? err.stack : err));
 
 console.log('Attempting Discord client login...');
 try {
@@ -72,6 +83,13 @@ try {
 } catch (e) {
   console.warn('Failed to start early webhook listener', e);
 }
+
+// Quick outbound HTTP check to discord.com to help detect general networking issues (non-blocking)
+try {
+  const axios = require('axios');
+  axios.get('https://discord.com', { timeout: 5000 }).then(() => console.log('HTTP check: discord.com reachable')).catch(e => console.warn('HTTP check: discord.com failed:', e && e.message ? e.message : e));
+} catch (e) { /* ignore if axios not available for some reason */ }
+
 const loginStart = Date.now();
 let loginTimed = false;
 const loginTimer = setTimeout(() => { loginTimed = true; console.warn('Discord login still in progress after 30s — verify network connectivity and that the token is correct.'); }, 30000);
