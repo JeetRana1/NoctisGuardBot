@@ -658,8 +658,65 @@
     "hostId": "474580691225673738",
     "creatorName": ".tintz._.#0",
     "requireRole": null,
-    "ended": false,
+    "ended": true,
     "messageId": "1466179571119427770",
+    "winners": [
+      "474580691225673738"
+    ]
+  },
+  {
+    "id": "mkyjcc6twtgf",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "U<EG",
+    "createdAt": 1769635595189,
+    "createdAtISO": "2026-01-28T21:26:35.189Z",
+    "endsAt": "2026-01-28T21:27:35.189Z",
+    "endTimestamp": 1769635655189,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1466182707192267019",
+    "winners": [
+      "474580691225673738"
+    ]
+  },
+  {
+    "id": "mkyo1ux5y2wt",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "Ta\\est",
+    "createdAt": 1769643504329,
+    "createdAtISO": "2026-01-28T23:38:24.329Z",
+    "endsAt": "2026-01-28T23:39:24.329Z",
+    "endTimestamp": 1769643564329,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1466215880949108913",
     "winners": []
+  },
+  {
+    "id": "mkyocknglcvx",
+    "guildId": "1336111006644047964",
+    "channelId": "1464390485136244747",
+    "prize": "Ta\\est22",
+    "createdAt": 1769644004236,
+    "createdAtISO": "2026-01-28T23:46:44.236Z",
+    "endsAt": "2026-01-28T23:47:44.236Z",
+    "endTimestamp": 1769644064236,
+    "winnerCount": 1,
+    "hostId": "474580691225673738",
+    "creatorName": ".tintz._.#0",
+    "requireRole": null,
+    "ended": true,
+    "messageId": "1466217977702649997",
+    "winners": [
+      "474580691225673738"
+    ]
   }
 ]

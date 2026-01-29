@@ -413,8 +413,8 @@ function startWebhookListener(client){
     }catch(e){ console.warn('Presence endpoint error', e); return res.status(500).json({ error: 'Failed to get presences' }); }
   });
 
-  // Stats endpoints for dashboard polling: GET /stats and POST /stats (both protected by x-dashboard-secret)
-  app.get('/stats', verifySecret, async (req, res) => {
+  // Stats endpoints for dashboard polling: GET /stats (public) and POST /stats (protected)
+  app.get('/stats', async (req, res) => {
     try{
       // compute live if client attached
       let live = { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers, commandsToday: botStats.commandsToday };

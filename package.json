@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node src/bot/index.js",
     "dev": "nodemon src/bot/index.js",
+    "tunnel": "npx ngrok http 4000",
+    "set-ngrok": "node scripts/use-ngrok.js",
+    "test:webhook": "node scripts/test-webhook.js",
     "gen-icons": "node scripts/generate-icons.js",
     "start:all": "node scripts/start-all.js"
   },
