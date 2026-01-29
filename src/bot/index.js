@@ -65,6 +65,13 @@ console.log('DISCORD_TOKEN present:', hasToken);
 if (!hasToken) console.error('DISCORD_TOKEN is missing. Set it in environment variables.');
 
 console.log('Attempting Discord client login...');
+try {
+  const webhook = require('./webhook');
+  webhook.startWebhookListener();
+  console.log('Early webhook health listener started (listening on PORT or BOT_WEBHOOK_PORT).');
+} catch (e) {
+  console.warn('Failed to start early webhook listener', e);
+}
 const loginStart = Date.now();
 let loginTimed = false;
 const loginTimer = setTimeout(() => { loginTimed = true; console.warn('Discord login still in progress after 30s — verify network connectivity and that the token is correct.'); }, 30000);

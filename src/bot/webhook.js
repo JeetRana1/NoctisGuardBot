@@ -7,7 +7,8 @@ const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
 
-const PORT = process.env.BOT_WEBHOOK_PORT || 4000;
+const PORT = process.env.PORT || process.env.BOT_WEBHOOK_PORT || 4000;
+console.log('Webhook port set to', PORT);
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'change-me-to-a-secret';
 const DASHBOARD_BASE = process.env.DASHBOARD_BASE || 'https://noctis-guard.vercel.app';
 const PLUGINS_FILE = path.join(__dirname, '..', '..', 'data', 'bot-guild-config.json');
@@ -388,6 +389,9 @@ function startWebhookListener(client){
       client._dashboardHandlersAttached = true;
     }
   }catch(e){ console.warn('Failed to attach dashboard client handlers', e); }
+
+  // If the webhook HTTP server is already running, don't try to start another — just return the server.
+  if (_server) { return _server; }
 
   const app = express();
   app.use(express.json());
