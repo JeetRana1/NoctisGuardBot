@@ -88,6 +88,26 @@ try {
 try {
   const axios = require('axios');
   axios.get('https://discord.com', { timeout: 5000 }).then(() => console.log('HTTP check: discord.com reachable')).catch(e => console.warn('HTTP check: discord.com failed:', e && e.message ? e.message : e));
+
+  // Non-blocking token validation against Discord REST API so we can detect 401/403 quickly
+  const token = String(process.env.DISCORD_TOKEN || '');
+  console.log('DISCORD_TOKEN length:', token.length, 'masked last4:', token.slice(-4));
+  if (/\s/.test(token)) console.warn('DISCORD_TOKEN contains whitespace characters (possible copy/paste issue)');
+  if (token.startsWith('Bot ')) console.warn('DISCORD_TOKEN appears to include the leading "Bot " prefix; store only the raw token without "Bot ".');
+
+  axios.get('https://discord.com/api/v10/users/@me', { headers: { Authorization: `Bot ${token}` }, timeout: 5000 })
+    .then(res => {
+      const d = res.data || {};
+      if (d.username) console.log('Token check success: user', d.username + (d.discriminator ? ('#'+d.discriminator) : ''));
+      else console.log('Token check success: status', res.status);
+    }).catch(err => {
+      if (err && err.response) {
+        const r = err.response;
+        console.error('Token check failed:', r.status, (r.data && r.data.message) ? r.data.message : JSON.stringify(r.data));
+      } else {
+        console.error('Token check failed:', err && err.message ? err.message : err);
+      }
+    });
 } catch (e) { /* ignore if axios not available for some reason */ }
 
 const loginStart = Date.now();
