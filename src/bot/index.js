@@ -1,7 +1,13 @@
+require('dotenv').config();
+// Enable debug logs from discord.js when DEBUG_VERBOSE is set (1/true/yes). This sets
+// the DEBUG env var before discord.js is required so its internal debug emitters are active.
+if (process.env.DEBUG_VERBOSE && ['1','true','yes'].includes(String(process.env.DEBUG_VERBOSE).toLowerCase())) {
+  process.env.DEBUG = process.env.DEBUG || 'discord.js:*';
+  console.log('DEBUG_VERBOSE is set — discord.js debug logs enabled (set DEBUG_VERBOSE=0 to disable).');
+}
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
 
 const client = new Client({
   intents: [
@@ -68,12 +74,19 @@ if (!hasToken) console.error('DISCORD_TOKEN is missing. Set it in environment va
 process.on('unhandledRejection', (reason) => { console.error('Unhandled Rejection:', reason && reason.stack ? reason.stack : reason); });
 process.on('uncaughtException', (err) => { console.error('Uncaught Exception:', err && err.stack ? err.stack : err); });
 
-// Log discord.js client-level errors/warnings and shard/socket issues
+// Log discord.js client-level errors/warnings and shard/socket issues (plus verbose debug hooks)
 client.on('error', (err) => console.error('Discord client error event:', err && err.stack ? err.stack : err));
 client.on('warn', (info) => console.warn('Discord client warn event:', info));
 client.on('shardError', (err) => console.error('Shard error event:', err && err.stack ? err.stack : err));
 client.on('shardDisconnect', (event, shardId) => console.warn('Shard disconnected', shardId, event));
-if (client.ws && typeof client.ws.on === 'function') client.ws.on('error', (err) => console.error('WebSocket error:', err && err.stack ? err.stack : err));
+// discord.js emits a 'debug' event when DEBUG env var is set
+client.on('debug', (msg) => console.debug('discord.js debug:', msg));
+
+if (client.ws && typeof client.ws.on === 'function') {
+  client.ws.on('error', (err) => console.error('WebSocket error:', err && err.stack ? err.stack : err));
+  client.ws.on('close', (code, reason) => console.warn('WebSocket closed:', code, reason && reason.toString ? reason.toString() : reason));
+  client.ws.on('disconnect', (event) => console.warn('WebSocket disconnect event:', event));
+}
 
 console.log('Attempting Discord client login...');
 try {
