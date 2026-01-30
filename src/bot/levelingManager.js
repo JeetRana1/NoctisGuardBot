@@ -2,30 +2,65 @@ const fs = require('fs');
 const path = require('path');
 const moderation = require('./moderationManager');
 
-const levelsPath = path.join(process.cwd(), 'data', 'levels.json');
+const levelsPath = path.join(__dirname, '..', '..', 'data', 'levels.json');
 
 let data = {};
+let loaded = false;
 const lastXp = new Map(); // cooldown per guild-user: key -> timestamp (in-memory)
-const lastXpPath = require('path').join(process.cwd(), 'data', 'lastXp.json');
+const lastXpPath = path.join(__dirname, '..', '..', 'data', 'lastXp.json');
 
 function _load() {
   try {
-    if (!fs.existsSync(levelsPath)) fs.writeFileSync(levelsPath, JSON.stringify({} , null, 2));
-    data = JSON.parse(fs.readFileSync(levelsPath));
+    // Ensure data directory exists
+    const dataDir = path.dirname(levelsPath);
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+    if (!fs.existsSync(levelsPath)) {
+      fs.writeFileSync(levelsPath, JSON.stringify({}, null, 2));
+      data = {};
+      loaded = true;
+    } else {
+      const raw = fs.readFileSync(levelsPath, 'utf8');
+      if (!raw || raw.trim() === '') {
+        data = {};
+        loaded = true;
+      } else {
+        data = JSON.parse(raw);
+        // cleanup legacy/erroneous keys
+        if (data["[object Object]"]) delete data["[object Object]"];
+        // basic validation: ensure data is an object and not null
+        if (!data || typeof data !== 'object') {
+          console.error('Levels file corrupted, data was:', data);
+          data = {};
+          loaded = false;
+        } else {
+          loaded = true;
+        }
+      }
+    }
+    console.log(`[leveling] Loaded data for ${Object.keys(data).length} guilds`);
   } catch (e) {
     console.error('Failed to load levels file', e);
+    // don't set loaded = true here to prevent wiping file on next save
     data = {};
   }
   // load persisted lastXp timestamps
   try {
-    if (!fs.existsSync(lastXpPath)) fs.writeFileSync(lastXpPath, JSON.stringify({} , null, 2));
+    if (!fs.existsSync(lastXpPath)) fs.writeFileSync(lastXpPath, JSON.stringify({}, null, 2));
     const raw = JSON.parse(fs.readFileSync(lastXpPath));
     Object.entries(raw || {}).forEach(([k, v]) => lastXp.set(k, v));
   } catch (e) { console.warn('Failed to load lastXp persistence', e); }
 }
 
 function _save() {
-  try { fs.writeFileSync(levelsPath, JSON.stringify(data, null, 2)); } catch (e) { console.error('Failed to save levels file', e); }
+  if (!loaded) {
+    console.warn('[leveling] Save skipped: Data was never successfully loaded. Preventing data loss.');
+    return;
+  }
+  try {
+    if (data["[object Object]"]) delete data["[object Object]"];
+    fs.writeFileSync(levelsPath, JSON.stringify(data, null, 2));
+  } catch (e) { console.error('Failed to save levels file', e); }
   // persist lastXp map
   try {
     const obj = {};
@@ -35,8 +70,9 @@ function _save() {
 }
 
 function _ensureGuild(guildId) {
-  if (!data[guildId]) data[guildId] = { users: {} };
-  return data[guildId];
+  const gid = String(guildId);
+  if (!data[gid]) data[gid] = { users: {} };
+  return data[gid];
 }
 
 function _requiredXpFor(level) {
@@ -93,7 +129,7 @@ async function addXp(client, guildId, userId) {
         if (guild) {
           const channel = guild.channels.cache.get(chId);
           if (channel && channel.isTextBased()) {
-            const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(()=>null);
+            const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
             const username = member ? `${member.user.username}#${member.user.discriminator}` : `<@${userId}>`;
             const avatar = member ? member.user.displayAvatarURL({ extension: 'png', size: 128 }) : null;
             const required = _requiredXpFor(newLevel);
@@ -101,7 +137,7 @@ async function addXp(client, guildId, userId) {
             try {
               const { generateLevelUpCard } = require('./utils/image');
               const buf = await generateLevelUpCard({ username: member ? member.user.username : username, discriminator: member ? member.user.discriminator : '0000', avatarUrl: avatar, level: newLevel, color: '#8b5cf6' });
-              await channel.send({ content: `<@${userId}>`, files: [{ attachment: buf, name: 'levelup.png' }] }).catch(()=>{});
+              await channel.send({ content: `<@${userId}>`, files: [{ attachment: buf, name: 'levelup.png' }] }).catch(() => { });
             } catch (e) {
               // fallback to embed if image generation fails
               const progress = Math.round((u.xp / required) * 20);
@@ -114,12 +150,12 @@ async function addXp(client, guildId, userId) {
                 .setColor(0x00FF99)
                 .setTimestamp();
               if (avatar) embed.setThumbnail(avatar);
-              channel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(()=>{});
+              channel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(() => { });
             }
           }
         }
       }
-    } catch(e) { console.error('Failed to send level up message', e); }
+    } catch (e) { console.error('Failed to send level up message', e); }
   }
 
   return { earned: earn, leveled, level: newLevel, xp: u.xp, totalXp: u.totalXp };
@@ -140,7 +176,7 @@ function getLevel(client, guildId, userId) {
 function getLeaderboard(guildId, limit = 10) {
   _ensureGuild(guildId);
   const users = Object.entries(data[guildId].users).map(([id, u]) => ({ id, xp: u.xp, level: u.level, totalXp: u.totalXp }));
-  users.sort((a,b) => {
+  users.sort((a, b) => {
     if (b.level !== a.level) return b.level - a.level;
     return (b.totalXp || 0) - (a.totalXp || 0);
   });
@@ -150,7 +186,7 @@ function getLeaderboard(guildId, limit = 10) {
 function getRank(guildId, userId) {
   _ensureGuild(guildId);
   const users = Object.entries(data[guildId].users).map(([id, u]) => ({ id, totalXp: u.totalXp || 0, level: u.level }));
-  users.sort((a,b) => {
+  users.sort((a, b) => {
     if (b.level !== a.level) return b.level - a.level;
     return b.totalXp - a.totalXp;
   });
@@ -159,14 +195,14 @@ function getRank(guildId, userId) {
 }
 
 // compute cumulative total XP needed to reach `level` (sum of required xp for levels 0..level-1)
-function _totalXpForLevel(level){
+function _totalXpForLevel(level) {
   let total = 0;
-  for (let i=0;i<level;i++) total += _requiredXpFor(i);
+  for (let i = 0; i < level; i++) total += _requiredXpFor(i);
   return total;
 }
 
 // set a user's level directly (owner-only command will call this). If `announce` true and server has levelChannel configured, the bot will post a message mentioning the user.
-async function setLevel(client, guildId, userId, level, announce = true){
+async function setLevel(client, guildId, userId, level, announce = true) {
   _ensureGuild(guildId);
   if (level < 0) throw new Error('Level must be >= 0');
   const g = data[guildId];
@@ -177,16 +213,16 @@ async function setLevel(client, guildId, userId, level, announce = true){
   u.totalXp = _totalXpForLevel(u.level);
   _save();
 
-  if (announce){
+  if (announce) {
     try {
       const cfg = moderation.getGuildConfig(guildId) || {};
       const chId = cfg.levelChannel;
-      if (chId){
+      if (chId) {
         const guild = client.guilds.cache.get(guildId);
-        if (guild){
+        if (guild) {
           const channel = guild.channels.cache.get(chId);
-          if (channel && channel.isTextBased()){
-            const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(()=>null);
+          if (channel && channel.isTextBased()) {
+            const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
             const username = member ? `${member.user.username}#${member.user.discriminator}` : `<@${userId}>`;
             const avatar = member ? member.user.displayAvatarURL({ extension: 'png', size: 128 }) : null;
             // try to generate a level-up/change image and send it
@@ -194,7 +230,7 @@ async function setLevel(client, guildId, userId, level, announce = true){
               const { generateLevelUpCard } = require('./utils/image');
               const msg = `was set to Level ${u.level} by an admin`;
               const buf = await generateLevelUpCard({ username: member ? member.user.username : username, discriminator: member ? member.user.discriminator : '0000', avatarUrl: avatar, level: u.level, color: '#8b5cf6', message: msg });
-              await channel.send({ content: `<@${userId}>`, files: [{ attachment: buf, name: 'levelup.png' }] }).catch(()=>{});
+              await channel.send({ content: `<@${userId}>`, files: [{ attachment: buf, name: 'levelup.png' }] }).catch(() => { });
             } catch (e) {
               const embed = {
                 title: `Level Changed`,
@@ -202,7 +238,7 @@ async function setLevel(client, guildId, userId, level, announce = true){
                 color: 0x3498DB,
                 thumbnail: avatar ? { url: avatar } : undefined
               };
-              await channel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(()=>{});
+              await channel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(() => { });
             }
           }
         }
@@ -218,25 +254,25 @@ const chokidar = require('chokidar');
 // track scheduled xp reverts per guild
 const xpTimers = new Map();
 
-function _clearXpTimer(guildId){
+function _clearXpTimer(guildId) {
   const t = xpTimers.get(guildId);
   if (t) { clearTimeout(t); xpTimers.delete(guildId); }
 }
 
-function clearXpTimer(guildId){
+function clearXpTimer(guildId) {
   _clearXpTimer(guildId);
 }
 
-function scheduleXpRevert(client, guildId, expireTimestamp){
+function scheduleXpRevert(client, guildId, expireTimestamp) {
   _clearXpTimer(guildId);
   const now = Date.now();
   const delay = Math.max(0, expireTimestamp - now);
-  const timeout = setTimeout(()=>{
+  const timeout = setTimeout(() => {
     try {
       const mod = require('./moderationManager');
       mod.setGuildConfig(guildId, { xpRate: 1, xpRateExpires: null });
       console.log(`XP rate reverted to 1x for guild ${guildId} (scheduled)`);
-    } catch(e){ console.warn('Failed to revert xp rate', e); }
+    } catch (e) { console.warn('Failed to revert xp rate', e); }
     _clearXpTimer(guildId);
   }, delay);
   xpTimers.set(guildId, timeout);
@@ -260,7 +296,10 @@ function init(client) {
     });
 
     // watch settings file to react to live changes from web panel
-    const settingsPath = require('path').join(process.cwd(), 'data', 'guildSettings.json');
+    const settingsPath = path.join(__dirname, '..', '..', 'data', 'guildSettings.json');
+    if (!fs.existsSync(settingsPath)) {
+      try { fs.mkdirSync(path.dirname(settingsPath), { recursive: true }); fs.writeFileSync(settingsPath, '{}'); } catch (e) { }
+    }
     const watcher = chokidar.watch(settingsPath, { ignoreInitial: true });
     watcher.on('change', async () => {
       try {

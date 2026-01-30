@@ -4,14 +4,14 @@ const crypto = require('crypto');
 const axios = require('axios');
 const sharp = require('sharp');
 
-const CACHE_DIR = path.join(process.cwd(), 'data', 'generated');
+const CACHE_DIR = path.join(__dirname, '..', '..', '..', 'data', 'generated');
 if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
 
-function hashObj(obj){
+function hashObj(obj) {
   return crypto.createHash('sha1').update(JSON.stringify(obj)).digest('hex');
 }
 
-async function fetchImageBase64(url){
+async function fetchImageBase64(url) {
   const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 10000 });
   const b = Buffer.from(res.data);
   return `data:image/png;base64,${b.toString('base64')}`;
@@ -19,7 +19,7 @@ async function fetchImageBase64(url){
 
 // Generate a level card as PNG using SVG -> Sharp rasterization
 // opts: { username, discriminator, avatarUrl, level, xp, required, rank, color, bannerUrl }
-async function generateLevelCard(opts){
+async function generateLevelCard(opts) {
   const { username = 'User', discriminator = '0000', avatarUrl, level = 1, xp = 0, required = 100, rank = 1, color = '#8b5cf6', bannerUrl, save = true } = opts; // default purple, save=true to persist file
   const key = hashObj({ username, discriminator, avatarUrl, level, xp, required, rank, color, bannerUrl });
   const outPath = path.join(CACHE_DIR, `${key}.png`);
@@ -109,15 +109,15 @@ async function generateLevelCard(opts){
   }
 }
 
-function escapeXml(unsafe){
+function escapeXml(unsafe) {
   return String(unsafe).replace(/[<>&"']/g, function (c) { switch (c) { case '<': return '&lt;'; case '>': return '&gt;'; case '&': return '&amp;'; case '"': return '&quot;'; case "'": return '&apos;'; } });
 }
-function formatNumber(n){ return (typeof n === 'number') ? n.toLocaleString() : n; }
+function formatNumber(n) { return (typeof n === 'number') ? n.toLocaleString() : n; }
 
 
 
 // Generate a celebratory level-up card (returns PNG buffer)
-async function generateLevelUpCard(opts){
+async function generateLevelUpCard(opts) {
   const { username = 'User', discriminator = '0000', avatarUrl, level = 1, color = '#8b5cf6', bannerUrl, message = null } = opts;
   // fetch images
   let avatarData = null; let bannerData = null;
@@ -173,7 +173,7 @@ async function generateLevelUpCard(opts){
 }
 
 // Reopen generateLeaderboardImage implementation (keeps previous behavior)
-async function generateLeaderboardImage(entries, opts = {}){
+async function generateLeaderboardImage(entries, opts = {}) {
   // entries: [{ id, rank, username, discriminator, avatarUrl, level, xp, totalXp }]
   const { color = '#8b5cf6', bannerUrl = null, width = 900, rowHeight = 72, maxRows = 20 } = opts;
   const rows = entries.slice(0, maxRows);
@@ -182,7 +182,7 @@ async function generateLeaderboardImage(entries, opts = {}){
 
   // fetch avatar images
   const avatarData = await Promise.all(rows.map(async (r) => {
-    try { if (r.avatarUrl) return await fetchImageBase64(r.avatarUrl); } catch(e) { return null; }
+    try { if (r.avatarUrl) return await fetchImageBase64(r.avatarUrl); } catch (e) { return null; }
     return null;
   }));
 
@@ -194,7 +194,7 @@ async function generateLeaderboardImage(entries, opts = {}){
     <g>
       <rect x="20" y="12" width="${width - 40}" height="${headerHeight - 12}" rx="8" fill="#0b0c0d" />
       <!-- Center title -->
-      <text x="${Math.floor(width/2)}" y="44" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="24" fill="#E6E9F2" font-weight="800" text-anchor="middle" stroke="#00000066" stroke-width="0.8" paint-order="stroke fill">Server Leaderboard</text>
+      <text x="${Math.floor(width / 2)}" y="44" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="24" fill="#E6E9F2" font-weight="800" text-anchor="middle" stroke="#00000066" stroke-width="0.8" paint-order="stroke fill">Server Leaderboard</text>
 
       <!-- vertical separators (start below header so they don't overlap title) -->
       <line x1="${width - 240}" y1="${headerHeight}" x2="${width - 240}" y2="${headerHeight + rowHeight * rows.length + 28}" stroke="#131316" stroke-width="1" />
@@ -261,7 +261,7 @@ async function generateLeaderboardImage(entries, opts = {}){
 }
 
 // Generate a generic info card (returns PNG buffer) — minimal, well-spaced layout with larger typography and centered-left avatar
-async function generateInfoCard(opts){
+async function generateInfoCard(opts) {
   const { title = 'Info', subtitle = '', avatarUrl = null, bannerUrl = null, color = '#8b5cf6', rows = [], width = 900, status = null } = opts;
   const rowHeight = 56;
   const perCol = Math.ceil(rows.length / 2);
@@ -273,7 +273,7 @@ async function generateInfoCard(opts){
   try { if (avatarUrl) avatarData = await fetchImageBase64(avatarUrl); } catch (e) { avatarData = null; }
   try { if (bannerUrl) bannerData = await fetchImageBase64(bannerUrl); } catch (e) { bannerData = null; }
 
-  function statusColor(s){
+  function statusColor(s) {
     if (!s) return null;
     const m = String(s).toLowerCase();
     if (m === 'online') return '#22c55e';
@@ -296,11 +296,11 @@ async function generateInfoCard(opts){
 
   let rowsSvg = '';
   const perColCount = Math.ceil(rows.length / 2);
-  for (let i = 0; i < perColCount; i++){
+  for (let i = 0; i < perColCount; i++) {
     const left = rows[i] || null;
     const right = rows[i + perColCount] || null;
     const y = rowsStartY + i * rowHeight;
-    if (left){
+    if (left) {
       rowsSvg += `
         <g>
           <text x="${leftColX}" y="${y + 16}" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="13" fill="#9CA3AF">${escapeXml(left.label)}</text>
@@ -308,7 +308,7 @@ async function generateInfoCard(opts){
         </g>
       `;
     }
-    if (right){
+    if (right) {
       rowsSvg += `
         <g>
           <text x="${rightColX}" y="${y + 16}" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="13" fill="#9CA3AF">${escapeXml(right.label)}</text>
@@ -341,7 +341,7 @@ async function generateInfoCard(opts){
 
       <rect width="${width}" height="${height}" rx="12" fill="#0f1113" />
       <!-- purple accent ribbon -->
-      <g transform="rotate(-7 ${Math.floor(width/2)} ${Math.floor(height/2)})"><rect x="${Math.floor(startX)}" y="-40" width="${Math.floor(width * 0.85)}" height="120" fill="url(#accent)" filter="url(#accentBlur)" opacity="0.95" /></g>
+      <g transform="rotate(-7 ${Math.floor(width / 2)} ${Math.floor(height / 2)})"><rect x="${Math.floor(startX)}" y="-40" width="${Math.floor(width * 0.85)}" height="120" fill="url(#accent)" filter="url(#accentBlur)" opacity="0.95" /></g>
       ${bannerData ? `<image href="${bannerData}" x="${width - 360}" y="0" width="360" height="${height}" preserveAspectRatio="xMidYMid slice" opacity="0.9" />` : ''}
 
       <!-- Avatar with glow (left centered vertically) -->
@@ -370,7 +370,7 @@ async function generateInfoCard(opts){
 }
 
 // Generate a welcome card (PNG buffer)
-async function generateWelcomeCard(opts){
+async function generateWelcomeCard(opts) {
   const { username = 'User', discriminator = '0000', avatarUrl = null, serverName = '', color = '#60a5fa', message = '' } = opts;
   const width = 900; const height = 250;
   let avatarData = null;
@@ -394,7 +394,7 @@ async function generateWelcomeCard(opts){
 
     <rect width="${width}" height="${height}" rx="12" fill="#0f1113" />
     <!-- welcome purple accent ribbon -->
-    <g transform="rotate(-6 ${Math.floor(width/2)} ${Math.floor(height/2)})"><rect x="160" y="-40" width="${Math.floor(width * 0.78)}" height="110" fill="url(#accentWelcome)" filter="url(#accentBlurWelcome)" opacity="0.95" /></g>
+    <g transform="rotate(-6 ${Math.floor(width / 2)} ${Math.floor(height / 2)})"><rect x="160" y="-40" width="${Math.floor(width * 0.78)}" height="110" fill="url(#accentWelcome)" filter="url(#accentBlurWelcome)" opacity="0.95" /></g>
 
     <g filter="url(#avatarGlow)">
       <circle cx="120" cy="125" r="94" fill="#0b0c0d" />
@@ -417,7 +417,7 @@ async function generateWelcomeCard(opts){
 }
 
 // Generate a goodbye card (PNG buffer)
-async function generateByeCard(opts){
+async function generateByeCard(opts) {
   const { username = 'User', discriminator = '0000', avatarUrl = null, serverName = '', color = '#ef4444', message = 'Goodbye and good luck!' } = opts;
   const width = 900; const height = 250;
   let avatarData = null;
@@ -442,7 +442,7 @@ async function generateByeCard(opts){
 
     <rect width="${width}" height="${height}" rx="12" fill="#0f1113" />
     <!-- bye purple accent ribbon -->
-    <g transform="rotate(-6 ${Math.floor(width/2)} ${Math.floor(height/2)})"><rect x="160" y="-36" width="${Math.floor(width * 0.78)}" height="110" fill="url(#accentBye)" filter="url(#accentBlurBye)" opacity="0.95" /></g>
+    <g transform="rotate(-6 ${Math.floor(width / 2)} ${Math.floor(height / 2)})"><rect x="160" y="-36" width="${Math.floor(width * 0.78)}" height="110" fill="url(#accentBye)" filter="url(#accentBlurBye)" opacity="0.95" /></g>
 
     <g filter="url(#avatarGlowBye)">
       <circle cx="120" cy="125" r="94" fill="#0b0c0d" />

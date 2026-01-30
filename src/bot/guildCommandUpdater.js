@@ -2,20 +2,20 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 
-const pendingFile = path.join(process.cwd(), 'data', 'pending-guild-commands.json');
-function ensureFile(){ try{ fs.mkdirSync(path.dirname(pendingFile), { recursive: true }); }catch(e){} if (!fs.existsSync(pendingFile)) fs.writeFileSync(pendingFile, JSON.stringify({})); }
+const pendingFile = path.join(__dirname, '..', '..', 'data', 'pending-guild-commands.json');
+function ensureFile() { try { fs.mkdirSync(path.dirname(pendingFile), { recursive: true }); } catch (e) { } if (!fs.existsSync(pendingFile)) fs.writeFileSync(pendingFile, JSON.stringify({})); }
 
-function readPending(){ ensureFile(); try{return JSON.parse(fs.readFileSync(pendingFile,'utf8')||'{}');}catch(e){return {};}}
-function writePending(obj){ ensureFile(); fs.writeFileSync(pendingFile, JSON.stringify(obj,null,2)); }
+function readPending() { ensureFile(); try { return JSON.parse(fs.readFileSync(pendingFile, 'utf8') || '{}'); } catch (e) { return {}; } }
+function writePending(obj) { ensureFile(); fs.writeFileSync(pendingFile, JSON.stringify(obj, null, 2)); }
 
-async function updateGuildCommandsUsingClient(client, guildId, disabledCommands){
-  try{
-    const commandsPath = path.join(process.cwd(), 'src', 'bot', 'commands');
+async function updateGuildCommandsUsingClient(client, guildId, disabledCommands) {
+  try {
+    const commandsPath = path.join(__dirname, 'commands');
     if (!fs.existsSync(commandsPath)) throw new Error('Commands directory not found');
     // recursively collect command files
-    function collectFiles(dir){
+    function collectFiles(dir) {
       const out = [];
-      for (const e of fs.readdirSync(dir, { withFileTypes: true })){
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
         const p = path.join(dir, e.name);
         if (e.isDirectory()) out.push(...collectFiles(p));
         else if (e.isFile() && e.name.endsWith('.js')) out.push(p);
@@ -24,7 +24,7 @@ async function updateGuildCommandsUsingClient(client, guildId, disabledCommands)
     }
     const files = collectFiles(commandsPath);
     const cmds = [];
-    for (const filePath of files){
+    for (const filePath of files) {
       try {
         const rel = path.relative(commandsPath, filePath);
         const parts = rel.split(path.sep);
@@ -62,7 +62,7 @@ async function updateGuildCommandsUsingClient(client, guildId, disabledCommands)
         try {
           if (raw && raw.retry_after) retryAfter = raw.retry_after * 1000;
           else if (raw && raw.headers && raw.headers['retry-after']) retryAfter = parseFloat(raw.headers['retry-after']) * 1000;
-        } catch (ee){/* ignore parsing */}
+        } catch (ee) {/* ignore parsing */ }
 
         if (e && e.code === 429) {
           lastDetectedRetryAfter = retryAfter || backoff;
@@ -86,25 +86,25 @@ async function updateGuildCommandsUsingClient(client, guildId, disabledCommands)
     }
 
     return { ok: true };
-  }catch(e){ console.warn('guildCommandUpdater: unexpected error', e); return { ok: false, error: String(e) }; }
+  } catch (e) { console.warn('guildCommandUpdater: unexpected error', e); return { ok: false, error: String(e) }; }
 }
 
-function queueUpdate(guildId, disabledCommands){
+function queueUpdate(guildId, disabledCommands) {
   const all = readPending();
   all[guildId] = { disabledCommands: disabledCommands || [], attempts: (all[guildId] && all[guildId].attempts) || 0, ts: Date.now() };
   writePending(all);
 }
 
-function removeQueued(guildId){ const all = readPending(); if (all[guildId]) { delete all[guildId]; writePending(all); } }
+function removeQueued(guildId) { const all = readPending(); if (all[guildId]) { delete all[guildId]; writePending(all); } }
 
-async function runPending(client){
+async function runPending(client) {
   const pending = readPending();
-  for (const guildId of Object.keys(pending)){
+  for (const guildId of Object.keys(pending)) {
     const entry = pending[guildId];
     // skip if a nextAttemptAt is set in the future
     if (entry.nextAttemptAt && Date.now() < entry.nextAttemptAt) { console.log('Skipping queued update for', guildId, 'until', new Date(entry.nextAttemptAt).toISOString()); continue; }
     if (entry.attempts >= 8) { console.warn('Skipping guild command update for', guildId, 'after', entry.attempts, 'attempts'); continue; }
-    console.log('Attempting queued command update for', guildId, 'attempt', (entry.attempts||0)+1);
+    console.log('Attempting queued command update for', guildId, 'attempt', (entry.attempts || 0) + 1);
     const res = await updateGuildCommandsUsingClient(client, guildId, entry.disabledCommands);
     if (res && res.ok) {
       removeQueued(guildId);
@@ -120,13 +120,13 @@ async function runPending(client){
   }
 }
 
-function init(client){
+function init(client) {
   ensureFile();
   // attempt on startup
-  runPending(client).catch(e=>console.warn('runPending error', e));
+  runPending(client).catch(e => console.warn('runPending error', e));
   // watch for file changes
   const watcher = chokidar.watch(pendingFile, { ignoreInitial: true });
-  watcher.on('change', ()=>{ runPending(client).catch(e=>console.warn('runPending error', e)); });
+  watcher.on('change', () => { runPending(client).catch(e => console.warn('runPending error', e)); });
 }
 
 module.exports = { init, queueUpdate, runPending };

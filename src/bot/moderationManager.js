@@ -2,13 +2,13 @@ const fs = require('fs');
 const path = require('path');
 const { baseEmbed } = require('./utils/embed');
 
-const infractionsPath = path.join(process.cwd(), 'data', 'infractions.json');
-const tempbansPath = path.join(process.cwd(), 'data', 'tempbans.json');
-const modLogsPath = path.join(process.cwd(), 'data', 'modlogs.json');
-const guildSettingsPath = path.join(process.cwd(), 'data', 'guildSettings.json');
+const infractionsPath = path.join(__dirname, '..', '..', 'data', 'infractions.json');
+const tempbansPath = path.join(__dirname, '..', '..', 'data', 'tempbans.json');
+const modLogsPath = path.join(__dirname, '..', '..', 'data', 'modlogs.json');
+const guildSettingsPath = path.join(__dirname, '..', '..', 'data', 'guildSettings.json');
 
 function ensureFile(p, init = {}) {
-  try { fs.mkdirSync(path.dirname(p), { recursive: true }); } catch (e) {}
+  try { fs.mkdirSync(path.dirname(p), { recursive: true }); } catch (e) { }
   if (!fs.existsSync(p)) fs.writeFileSync(p, JSON.stringify(init, null, 2));
 }
 
@@ -19,28 +19,28 @@ function readJson(p) {
 
 function writeJson(p, obj) { fs.writeFileSync(p, JSON.stringify(obj, null, 2)); }
 
-function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
 // track recent warn DMs to avoid duplicates
 const _recentWarns = {}; // { [guildId]: { [userId]: timestamp } }
 
 module.exports = {
-  addWarning(guildId, userId, moderatorId, reason){
+  addWarning(guildId, userId, moderatorId, reason) {
     const data = readJson(infractionsPath);
     data[guildId] = data[guildId] || {};
     data[guildId][userId] = data[guildId][userId] || [];
-    const record = { id: makeId(), moderatorId, reason: reason||'No reason provided', timestamp: Date.now() };
+    const record = { id: makeId(), moderatorId, reason: reason || 'No reason provided', timestamp: Date.now() };
     data[guildId][userId].push(record);
     writeJson(infractionsPath, data);
     return record;
   },
   // helper to get warning count
-  getWarningCount(guildId, userId){
+  getWarningCount(guildId, userId) {
     const data = readJson(infractionsPath);
     return (data[guildId] && data[guildId][userId]) ? data[guildId][userId].length : 0;
   },
   // avoiding duplicate DM on warns and other moderation DMs: only allow one DM per user per guild within intervalMs
-  canSendDM(guildId, userId, intervalMs = 5000){
+  canSendDM(guildId, userId, intervalMs = 5000) {
     _recentWarns[guildId] = _recentWarns[guildId] || {};
     const last = _recentWarns[guildId][userId] || 0;
     const now = Date.now();
@@ -49,10 +49,10 @@ module.exports = {
     return true;
   },
   // send a DM safely (deduped); message can be a string or an embed/object for channel.send
-  async sendUserDM(client, guildId, userId, message){
+  async sendUserDM(client, guildId, userId, message) {
     if (!this.canSendDM(guildId, userId)) return false;
     try {
-      const user = await client.users.fetch(userId).catch(()=>null);
+      const user = await client.users.fetch(userId).catch(() => null);
       if (!user) return false;
       // If caller provided a plain string, wrap it into a simple embed for consistency
       if (typeof message === 'string') {
@@ -66,11 +66,11 @@ module.exports = {
       return true;
     } catch (e) { return false; }
   },
-  listWarnings(guildId, userId){
+  listWarnings(guildId, userId) {
     const data = readJson(infractionsPath);
     return (data[guildId] && data[guildId][userId]) ? data[guildId][userId] : [];
   },
-  clearWarnings(guildId, userId){
+  clearWarnings(guildId, userId) {
     const data = readJson(infractionsPath);
     if (data[guildId]) delete data[guildId][userId];
     writeJson(infractionsPath, data);
@@ -78,14 +78,14 @@ module.exports = {
   },
 
   // Moderation logs and cases
-  _saveCase(guildId, caseObj){
+  _saveCase(guildId, caseObj) {
     ensureFile(modLogsPath, {});
     const logs = readJson(modLogsPath);
     logs[guildId] = logs[guildId] || [];
     logs[guildId].push(caseObj);
     writeJson(modLogsPath, logs);
   },
-  logAction(client, guildId, type, targetId, moderatorId, reason, extra = {}){
+  logAction(client, guildId, type, targetId, moderatorId, reason, extra = {}) {
     const id = makeId();
     const timestamp = Date.now();
     const caseObj = { id, guildId, type, targetId, moderatorId, reason, timestamp, ...extra };
@@ -98,7 +98,7 @@ module.exports = {
       if (channelId && client) {
         client.channels.fetch(channelId).then(ch => {
           if (!ch || !ch.isTextBased?.()) return;
-              const embed = baseEmbed({
+          const embed = baseEmbed({
             title: 'Moderation Action',
             color: 0xE74C3C,
             fields: [
@@ -111,31 +111,31 @@ module.exports = {
           });
           // preserve original timestamp
           embed.setTimestamp(timestamp);
-          ch.send({ embeds: [embed] }).catch(()=>{});
-        }).catch(()=>{});
+          ch.send({ embeds: [embed] }).catch(() => { });
+        }).catch(() => { });
       }
     } catch (e) { console.warn('Failed to send moderation log embed', e); }
     return caseObj;
   },
-  getCases(guildId){
+  getCases(guildId) {
     ensureFile(modLogsPath, {});
     const logs = readJson(modLogsPath);
     return logs[guildId] || [];
   },
 
   // Guild settings persistence
-  getGuildConfig(guildId){
+  getGuildConfig(guildId) {
     ensureFile(guildSettingsPath, {});
     const s = readJson(guildSettingsPath);
     // xpRate: per-guild multiplier for XP earned (1 = normal, 2 = double XP, etc.)
     return s[guildId] || { autoroleId: null, logChannelId: null, levelChannel: null, xpRate: 1, xpRateExpires: null, automod: { profanity: true, invites: true, spam: true }, welcomeChannelId: null, byeChannelId: null, welcomeEnabled: true, welcomeMessage: null, byeMessage: null };
   },
   // Return entire settings object (useful for managers that need to scan all guild settings)
-  getAllGuildSettings(){
+  getAllGuildSettings() {
     ensureFile(guildSettingsPath, {});
     return readJson(guildSettingsPath);
   },
-  setGuildConfig(guildId, cfg){
+  setGuildConfig(guildId, cfg) {
     ensureFile(guildSettingsPath, {});
     const s = readJson(guildSettingsPath);
     s[guildId] = Object.assign(this.getGuildConfig(guildId), cfg);
@@ -144,7 +144,7 @@ module.exports = {
   },
 
   // TEMPBANS
-  async createTempban(client, guildId, userId, durationMs, moderatorId, reason){
+  async createTempban(client, guildId, userId, durationMs, moderatorId, reason) {
     // Ban immediately
     try {
       const guild = await client.guilds.fetch(guildId);
@@ -162,10 +162,10 @@ module.exports = {
     this._scheduleUnban(client, { id, guildId, userId, endTimestamp });
     return { id, guildId, userId, endTimestamp };
   },
-  _scheduleUnban(client, t){
+  _scheduleUnban(client, t) {
     const now = Date.now();
     const delay = Math.max(0, t.endTimestamp - now);
-    setTimeout(async ()=>{
+    setTimeout(async () => {
       try {
         const g = await client.guilds.fetch(t.guildId);
         await g.members.unban(t.userId, 'Temporary ban expired');
@@ -176,7 +176,7 @@ module.exports = {
       writeJson(tempbansPath, temp);
     }, delay);
   },
-  init(client){
+  init(client) {
     // schedule existing tempbans
     ensureFile(tempbansPath, {});
     const temp = readJson(tempbansPath) || {};
@@ -184,7 +184,7 @@ module.exports = {
       if (!t || !t.id) return;
       // if expired, unban immediately
       if (t.endTimestamp <= Date.now()) {
-        client.guilds.fetch(t.guildId).then(g=>g.members.unban(t.userId, 'Tempban expired on startup')).catch(()=>{});
+        client.guilds.fetch(t.guildId).then(g => g.members.unban(t.userId, 'Tempban expired on startup')).catch(() => { });
         const all = readJson(tempbansPath); delete all[t.id]; writeJson(tempbansPath, all);
       } else {
         this._scheduleUnban(client, t);

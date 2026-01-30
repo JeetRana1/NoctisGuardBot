@@ -100,11 +100,32 @@ async function getPresencesForGuild(guildId) {
   try {
     if (_client && _client.guilds && _client.guilds.cache.has(guildId)) {
       const guild = _client.guilds.cache.get(guildId);
-      // best-effort: fetch some members into cache with presences
-      try { await guild.members.fetch({ limit: 100, withPresences: true }); } catch (e) { /* ignore fetch errors */ }
-      guild.members.cache.forEach(m => {
-        presences.push({ id: m.id, status: (m.presence && m.presence.status) ? m.presence.status : 'offline' });
-      });
+
+      // Use the presence cache which is updated automatically by Gateway events (requires GuildPresences intent)
+      if (guild.presences && guild.presences.cache.size > 0) {
+        guild.presences.cache.forEach((p, userId) => {
+          presences.push({ id: userId, status: p.status || 'offline' });
+        });
+      }
+
+      // If cache is empty or small, try a targeted fetch for members to populate it
+      // Note: withPresences: true only works if the bot has the intent enabled in Portal + Code
+      if (presences.length < 5) {
+        try {
+          const members = await guild.members.fetch({ limit: 50, withPresences: true }).catch(() => null);
+          if (members) {
+            members.forEach(m => {
+              const s = (m.presence && m.presence.status) ? m.presence.status : 'offline';
+              // Avoid duplicates if already in list from presence cache
+              if (!presences.find(p => p.id === m.id)) {
+                presences.push({ id: m.id, status: s });
+              }
+            });
+          }
+        } catch (e) { /* ignore fetch errors */ }
+      }
+
+      console.log(`[bot] Gathered ${presences.length} presences for guild ${guildId} (${guild.name})`);
       return presences;
     }
   } catch (e) { console.warn('Failed to gather presences for', guildId, e); }
