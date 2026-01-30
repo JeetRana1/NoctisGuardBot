@@ -352,6 +352,18 @@ async function reconcileAllGuilds(client){
       console.warn('Failed to queue command update for guild during reconcile', id, e);
     }
   }
+  // Push initial stats to dashboard after reconciliation
+  try {
+    const liveStats = {
+      guildCount: client.guilds.cache.size,
+      totalMembers: client.guilds.cache.reduce((acc, g) => acc + (g.memberCount || 0), 0),
+      commandsToday: botStats.commandsToday || 0
+    };
+    console.log('Pushing initial stats to dashboard during reconcile:', liveStats);
+    notifyDashboardEvent({ type: 'stats_update', stats: liveStats });
+  } catch (e) {
+    console.warn('Failed to push initial stats during reconcile', e);
+  }
 }
 
 // Start webhook listener
