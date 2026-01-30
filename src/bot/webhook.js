@@ -514,6 +514,13 @@ function startWebhookListener(client) {
     } catch (e) { console.warn('Unhandled error in guild-member', e); return res.status(500).json({ error: 'Internal error' }); }
   });
 
+  // Provide plugin state for the dashboard to use as a fallback when its own file system is ephemeral (e.g. Vercel)
+  app.get('/internal/server-plugins/:guildId', verifySecret, async (req, res) => {
+    const guildId = req.params.guildId;
+    const config = guildConfig[guildId] || {};
+    return res.json({ guildId, state: config.plugins || {} });
+  });
+
   // Recompute authoritative stats from the bot's cache and notify dashboard (protected)
   app.post('/internal/recompute-stats', verifySecret, async (req, res) => {
     try {
