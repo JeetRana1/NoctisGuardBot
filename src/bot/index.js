@@ -18,10 +18,19 @@ const client = new Client({
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMembers,
   ],
-  // use canary domain for REST to help bypass shared IP rate limits on Render/Heroku
+  // use default API but with more robust retry/timeout settings for shared hosting
   rest: {
-    api: 'https://canary.discord.com/api'
+    retries: 5,
+    timeout: 30000,
   }
+});
+
+// REST monitoring to see exactly where the hang happens
+client.rest.on('request', (req) => {
+  console.log(`[REST] ${req.method} ${req.path}`);
+});
+client.rest.on('response', (req, res) => {
+  console.log(`[REST] ${res.status} ${req.method} ${req.path}`);
 });
 
 client.commands = new Collection();
@@ -93,6 +102,8 @@ if (client.ws && typeof client.ws.on === 'function') {
 }
 
 console.log('Attempting Discord client login...');
+
+// Start the webhook listener early so Render health checks pass immediately
 try {
   const webhook = require('./webhook');
   webhook.startWebhookListener();
@@ -103,13 +114,19 @@ try {
 
 const loginStart = Date.now();
 let loginTimed = false;
-const loginTimer = setTimeout(() => { loginTimed = true; console.warn('Discord login still in progress after 30s — verify network connectivity and that the token is correct.'); }, 30000);
+const loginTimer = setTimeout(() => {
+  loginTimed = true;
+  console.warn('Discord login still in progress after 45s — Render IPs may be rate-limited by Discord Cloudflare.');
+}, 45000);
 
-client.login(process.env.DISCORD_TOKEN).then(() => {
-  clearTimeout(loginTimer);
-  if (!loginTimed) console.log('Discord login completed quickly (within 30s).');
-}).catch(err => {
-  clearTimeout(loginTimer);
-  console.error('Discord client login failed:', err && err.stack ? err.stack : String(err));
-  // keep process alive so Render logs capture the error; you might want to exit in production
-});
+// "Soft Start": Delay login by 5s to avoid hitting the API right when the container spawns
+console.log('Waiting 5s before client.login() to avoid startup rate limits...');
+setTimeout(() => {
+  client.login(process.env.DISCORD_TOKEN).then(() => {
+    clearTimeout(loginTimer);
+    if (!loginTimed) console.log('Discord login completed successfully.');
+  }).catch(err => {
+    clearTimeout(loginTimer);
+    console.error('Discord client login failed:', err && err.stack ? err.stack : String(err));
+  });
+}, 5000);
