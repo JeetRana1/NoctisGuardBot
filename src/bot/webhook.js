@@ -7,8 +7,9 @@ const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
 
-const PORT = process.env.PORT || process.env.BOT_WEBHOOK_PORT || 4000;
-console.log('Webhook port set to', PORT);
+// Set the port to 8000 as requested for this project
+const PORT = process.env.BOT_WEBHOOK_PORT || 8000;
+console.log('[bot] Webhook server strictly using port', PORT);
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'change-me-to-a-secret';
 const DASHBOARD_BASE = process.env.DASHBOARD_BASE || 'https://noctis-guard.vercel.app';
 const PLUGINS_FILE = path.join(__dirname, '..', '..', 'data', 'bot-guild-config.json');
@@ -135,7 +136,10 @@ async function getPresencesForGuild(guildId) {
         }
       }
 
-      console.log(`[bot] Gathered ${presences.length} presences for guild ${guildId} (${guild.name}) - Cache size: ${guild.presences.cache.size}`);
+      console.log(`[bot] Gathered ${presences.length} presences for guild ${guildId} (${guild.name}) - Manager size: ${guild.presences ? guild.presences.cache.size : 'N/A'}`);
+      if (presences.length === 0) {
+        console.warn(`[bot] No presences found for ${guildId}. Intents checked: Presence=${!!hasPresenceIntent}`);
+      }
       return presences;
     } else {
       console.log(`[bot] Guild ${guildId} not found in client cache for presence request.`);
