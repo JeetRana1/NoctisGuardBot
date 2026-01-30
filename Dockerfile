@@ -12,8 +12,8 @@ RUN npm install --production
 # Copy source
 COPY . .
 
-# Match the port picking up in your logs
-ENV PORT=3000
-EXPOSE 3000
+# Match Koyeb's default health check port
+ENV PORT=8000
+EXPOSE 8000
 
 CMD ["node", "scripts/start-all.js"]
