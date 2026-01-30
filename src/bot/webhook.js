@@ -100,8 +100,8 @@ async function getPresencesForGuild(guildId) {
   try {
     if (_client && _client.guilds && _client.guilds.cache.has(guildId)) {
       const guild = _client.guilds.cache.get(guildId);
-      // best-effort: fetch some members into cache
-      try { await guild.members.fetch({ limit: 100 }); } catch (e) { /* ignore fetch errors */ }
+      // best-effort: fetch some members into cache with presences
+      try { await guild.members.fetch({ limit: 100, withPresences: true }); } catch (e) { /* ignore fetch errors */ }
       guild.members.cache.forEach(m => {
         presences.push({ id: m.id, status: (m.presence && m.presence.status) ? m.presence.status : 'offline' });
       });
