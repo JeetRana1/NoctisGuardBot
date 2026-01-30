@@ -1,5 +1,5 @@
 # Dockerfile for the bot service
-FROM node:18-alpine
+FROM node:20-slim
 WORKDIR /app
 
 # Install dependencies
@@ -9,7 +9,8 @@ RUN npm install --production
 # Copy source
 COPY . .
 
+# Koyeb uses PORT env var automatically
 ENV PORT=4000
 EXPOSE 4000
 
-CMD ["npm", "run", "start"]
+CMD ["node", "scripts/start-all.js"]
