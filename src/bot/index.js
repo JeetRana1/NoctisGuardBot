@@ -84,7 +84,13 @@ console.log('Attempting Discord client login...');
 // Start the internal dashboard webhook listener
 try {
   const webhook = require('./webhook');
-  webhook.startWebhookListener();
+  webhook.startWebhookListener(client);
+
+  // When the bot is ready, reconcile state with the dashboard
+  client.once('ready', () => {
+    console.log(`Bot logged in as ${client.user.tag}`);
+    webhook.reconcileAllGuilds(client).catch(e => console.warn('Failed initial reconciliation', e));
+  });
 } catch (e) {
   console.warn('Failed to start webhook listener', e);
 }
@@ -95,7 +101,7 @@ const loginTimer = setTimeout(() => {
 
 client.login(process.env.DISCORD_TOKEN).then(() => {
   clearTimeout(loginTimer);
-  console.log('Discord login completed successfully.');
+  console.log('Discord login completed.');
 }).catch(err => {
   clearTimeout(loginTimer);
   console.error('Discord client login failed:', err && err.stack ? err.stack : String(err));
