@@ -81,19 +81,8 @@ client.on('shardError', (err) => console.error('Shard error event:', err && err.
 client.on('shardDisconnect', (event, shardId) => console.warn('Shard disconnected', shardId, event));
 console.log('Attempting Discord client login...');
 
-// Start the internal dashboard webhook listener
-try {
-  const webhook = require('./webhook');
-  webhook.startWebhookListener(client);
-
-  // When the bot is ready, reconcile state with the dashboard
-  client.once('ready', () => {
-    console.log(`Bot logged in as ${client.user.tag}`);
-    webhook.reconcileAllGuilds(client).catch(e => console.warn('Failed initial reconciliation', e));
-  });
-} catch (e) {
-  console.warn('Failed to start webhook listener', e);
-}
+// Note: Webhook listener and initial reconciliation are started in src/bot/events/ready.js 
+// to ensure consolidated initialization after the client is fully ready.
 
 const loginTimer = setTimeout(() => {
   console.warn('Discord login taking longer than expected. Check your token and network.');

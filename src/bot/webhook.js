@@ -7,9 +7,9 @@ const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
 
-// Set the port to 8000 as requested for this project
-const PORT = process.env.BOT_WEBHOOK_PORT || 8000;
-console.log('[bot] Webhook server strictly using port', PORT);
+// Use process.env.PORT as the primary source (standard for Koyeb/Render/Cloud hosts)
+const PORT = process.env.PORT || process.env.BOT_WEBHOOK_PORT || 8000;
+console.log(`[bot] Webhook server listening for health checks and dashboard on port ${PORT}`);
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'change-me-to-a-secret';
 const DASHBOARD_BASE = process.env.DASHBOARD_BASE || 'https://noctis-guard.vercel.app';
 const PLUGINS_FILE = path.join(__dirname, '..', '..', 'data', 'bot-guild-config.json');
