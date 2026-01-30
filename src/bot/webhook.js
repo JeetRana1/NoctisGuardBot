@@ -95,38 +95,50 @@ function verifySecret(req, res, next) {
 }
 
 // Webhook handler
+// Webhook handler for gathering member presences
 async function getPresencesForGuild(guildId) {
   const presences = [];
   try {
     if (_client && _client.guilds && _client.guilds.cache.has(guildId)) {
       const guild = _client.guilds.cache.get(guildId);
 
-      // Use the presence cache which is updated automatically by Gateway events (requires GuildPresences intent)
+      // Verify intents (informational logging)
+      const hasPresenceIntent = _client.options.intents & 256; // 1 << 8 is GuildPresences
+      if (!hasPresenceIntent) {
+        console.warn(`[bot] Bot is missing GuildPresences intent; member status will always be offline.`);
+      }
+
+      // 1. Check existing presence cache (fast)
       if (guild.presences && guild.presences.cache.size > 0) {
         guild.presences.cache.forEach((p, userId) => {
           presences.push({ id: userId, status: p.status || 'offline' });
         });
       }
 
-      // If cache is empty or small, try a targeted fetch for members to populate it
-      // Note: withPresences: true only works if the bot has the intent enabled in Portal + Code
-      if (presences.length < 5) {
+      // 2. If cache is low, aggressively fetch members with presences
+      // For dashboard use, we target a reasonable set of members to avoid huge 1000+ member fetches
+      // We check < 10 to ensure we have at least a few statuses to show
+      if (presences.length < 10) {
         try {
-          const members = await guild.members.fetch({ limit: 50, withPresences: true }).catch(() => null);
+          console.log(`[bot] Cache size low (${presences.length}); performing aggressive fetch for ${guildId}`);
+          const members = await guild.members.fetch({ limit: 100, withPresences: true }).catch(() => null);
           if (members) {
             members.forEach(m => {
               const s = (m.presence && m.presence.status) ? m.presence.status : 'offline';
-              // Avoid duplicates if already in list from presence cache
               if (!presences.find(p => p.id === m.id)) {
                 presences.push({ id: m.id, status: s });
               }
             });
           }
-        } catch (e) { /* ignore fetch errors */ }
+        } catch (e) {
+          console.warn(`[bot] Aggressive presence fetch failed for guild ${guildId}:`, e.message);
+        }
       }
 
-      console.log(`[bot] Gathered ${presences.length} presences for guild ${guildId} (${guild.name})`);
+      console.log(`[bot] Gathered ${presences.length} presences for guild ${guildId} (${guild.name}) - Cache size: ${guild.presences.cache.size}`);
       return presences;
+    } else {
+      console.log(`[bot] Guild ${guildId} not found in client cache for presence request.`);
     }
   } catch (e) { console.warn('Failed to gather presences for', guildId, e); }
   return null;
