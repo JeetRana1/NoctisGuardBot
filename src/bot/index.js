@@ -18,6 +18,12 @@ const client = new Client({
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMembers,
   ],
+  // Bypass /gateway/bot call which is rate-limited on Render
+  shards: [0],
+  shardCount: 1,
+  ws: {
+    gateway: 'wss://gateway.discord.gg/',
+  },
   // use default API but with more robust retry/timeout settings for shared hosting
   rest: {
     retries: 5,
