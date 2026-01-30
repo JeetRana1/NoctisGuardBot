@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+data/*.json
+.env
+.git
+.gitignore
+*.md
+scripts/test-webhook.js
+scripts/use-ngrok.js
+scripts/gateway-test.js
+scripts/generate-icons.js
+scripts/generate-samples.js
+scripts/generate-level-sample.js
+scripts/generate-levelup-sample.js
+scripts/generate-leaderboard-sample.js
