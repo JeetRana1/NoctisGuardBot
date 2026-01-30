@@ -18,25 +18,6 @@ const client = new Client({
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMembers,
   ],
-  // Bypass /gateway/bot call which is rate-limited on Render
-  shards: [0],
-  shardCount: 1,
-  ws: {
-    gateway: 'wss://gateway.discord.gg/',
-  },
-  // use default API but with more robust retry/timeout settings for shared hosting
-  rest: {
-    retries: 5,
-    timeout: 30000,
-  }
-});
-
-// REST monitoring to see exactly where the hang happens
-client.rest.on('request', (req) => {
-  console.log(`[REST] ${req.method} ${req.path}`);
-});
-client.rest.on('response', (req, res) => {
-  console.log(`[REST] ${res.status} ${req.method} ${req.path}`);
 });
 
 client.commands = new Collection();
@@ -98,41 +79,24 @@ client.on('error', (err) => console.error('Discord client error event:', err && 
 client.on('warn', (info) => console.warn('Discord client warn event:', info));
 client.on('shardError', (err) => console.error('Shard error event:', err && err.stack ? err.stack : err));
 client.on('shardDisconnect', (event, shardId) => console.warn('Shard disconnected', shardId, event));
-// discord.js emits a 'debug' event when DEBUG env var is set
-client.on('debug', (msg) => console.debug('discord.js debug:', msg));
-
-if (client.ws && typeof client.ws.on === 'function') {
-  client.ws.on('error', (err) => console.error('WebSocket error:', err && err.stack ? err.stack : err));
-  client.ws.on('close', (code, reason) => console.warn('WebSocket closed:', code, reason && reason.toString ? reason.toString() : reason));
-  client.ws.on('disconnect', (event) => console.warn('WebSocket disconnect event:', event));
-}
-
 console.log('Attempting Discord client login...');
 
-// Start the webhook listener early so Render health checks pass immediately
+// Start the internal dashboard webhook listener
 try {
   const webhook = require('./webhook');
   webhook.startWebhookListener();
-  console.log('Early webhook health listener started (listening on PORT or BOT_WEBHOOK_PORT).');
 } catch (e) {
-  console.warn('Failed to start early webhook listener', e);
+  console.warn('Failed to start webhook listener', e);
 }
 
-const loginStart = Date.now();
-let loginTimed = false;
 const loginTimer = setTimeout(() => {
-  loginTimed = true;
-  console.warn('Discord login still in progress after 45s — Render IPs may be rate-limited by Discord Cloudflare.');
-}, 45000);
+  console.warn('Discord login taking longer than expected. Check your token and network.');
+}, 30000);
 
-// "Soft Start": Delay login by 5s to avoid hitting the API right when the container spawns
-console.log('Waiting 5s before client.login() to avoid startup rate limits...');
-setTimeout(() => {
-  client.login(process.env.DISCORD_TOKEN).then(() => {
-    clearTimeout(loginTimer);
-    if (!loginTimed) console.log('Discord login completed successfully.');
-  }).catch(err => {
-    clearTimeout(loginTimer);
-    console.error('Discord client login failed:', err && err.stack ? err.stack : String(err));
-  });
-}, 5000);
+client.login(process.env.DISCORD_TOKEN).then(() => {
+  clearTimeout(loginTimer);
+  console.log('Discord login completed successfully.');
+}).catch(err => {
+  clearTimeout(loginTimer);
+  console.error('Discord client login failed:', err && err.stack ? err.stack : String(err));
+});
