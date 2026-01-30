@@ -1,7 +1,7 @@
 require('dotenv').config();
 // Enable debug logs from discord.js when DEBUG_VERBOSE is set (1/true/yes). This sets
 // the DEBUG env var before discord.js is required so its internal debug emitters are active.
-if (process.env.DEBUG_VERBOSE && ['1','true','yes'].includes(String(process.env.DEBUG_VERBOSE).toLowerCase())) {
+if (process.env.DEBUG_VERBOSE && ['1', 'true', 'yes'].includes(String(process.env.DEBUG_VERBOSE).toLowerCase())) {
   process.env.DEBUG = process.env.DEBUG || 'discord.js:*';
   console.log('DEBUG_VERBOSE is set — discord.js debug logs enabled (set DEBUG_VERBOSE=0 to disable).');
 }
@@ -18,9 +18,9 @@ const client = new Client({
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMembers,
   ],
-  // discord.js v14 rest options to help bypass shared IP rate limits on Render/Heroku
+  // use canary domain for REST to help bypass shared IP rate limits on Render/Heroku
   rest: {
-    api: 'https://discordapp.com/api'
+    api: 'https://canary.discord.com/api'
   }
 });
 
@@ -29,10 +29,10 @@ client.queue = new Map();
 
 const commandsPath = path.join(__dirname, 'commands');
 
-function getCommandFiles(dir){
+function getCommandFiles(dir) {
   const out = [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const e of entries){
+  for (const e of entries) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) out.push(...getCommandFiles(p));
     else if (e.isFile() && e.name.endsWith('.js')) out.push(p);
@@ -41,7 +41,7 @@ function getCommandFiles(dir){
 }
 
 const commandFiles = getCommandFiles(commandsPath);
-for (const filePath of commandFiles){
+for (const filePath of commandFiles) {
   const rel = path.relative(commandsPath, filePath);
   const parts = rel.split(path.sep);
   const pluginName = parts.length > 1 ? parts[0] : 'core';
@@ -54,7 +54,7 @@ for (const filePath of commandFiles){
   } catch (e) {
     console.error('Failed to load command', filePath, e);
   }
-} 
+}
 
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
