@@ -46,8 +46,24 @@ module.exports = {
     try {
       const webhook = require('../webhook');
       webhook.startWebhookListener(client);
-      webhook.reconcileAllGuilds(client);
-      console.log('Webhook listener started and guilds reconciled');
+      console.log('Webhook health-check server started on port 8000');
+
+      // Clear global commands (only use guild commands to allow per-server toggling)
+      // Leftover global commands often cause "ghost" commands that stay visible even when disabled.
+      (async () => {
+        try {
+          const globalCmds = await client.application.commands.fetch();
+          if (globalCmds.size > 0) {
+            console.log(`[bot] Found ${globalCmds.size} global commands. Clearing them to favor guild-specific commands...`);
+            await client.application.commands.set([]);
+            console.log('[bot] Global commands cleared.');
+          }
+        } catch (e) { console.warn('[bot] Failed to clear global commands:', e.message); }
+
+        // Now start the heavier reconciliation
+        await webhook.reconcileAllGuilds(client);
+        console.log('Webhook listener guilds reconciled');
+      })();
     } catch (e) {
       console.error('Failed to start webhook listener:', e);
     }

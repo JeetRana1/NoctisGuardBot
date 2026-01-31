@@ -351,14 +351,25 @@ async function fetchPluginStateFromDashboard(guildId) {
     const internalUrl = `${DASHBOARD_BASE.replace(/\/$/, '')}/internal/server-plugins/${encodeURIComponent(guildId)}`;
     try {
       const res = await axios.get(internalUrl, { timeout: 5000, headers, validateStatus: () => true });
-      if (res.status >= 200 && res.status < 300 && res.data?.state) {
+      if (res.status >= 200 && res.status < 300 && res.data && res.data.state) {
+        const dashboardState = res.data.state || {};
+        const hasExisting = guildConfig[guildId] && guildConfig[guildId].plugins && Object.keys(guildConfig[guildId].plugins).length > 0;
+
+        // Safety: If dashboard returns empty but bot has state, it might be a cold start / data loss on dashboard side.
+        // Don't overwrite bot's truth with dashboard's emptiness unless bot has nothing.
+        if (Object.keys(dashboardState).length === 0 && hasExisting) {
+          console.log(`[bot] Dashboard state fetch for ${guildId} returned empty, but bot has local state. Skipping overwrite to prevent data loss.`);
+          return true;
+        }
+
         guildConfig[guildId] = guildConfig[guildId] || {};
-        guildConfig[guildId].plugins = res.data.state || {};
-        guildConfig[guildId].disabled = Object.keys(res.data.state || {}).filter(k => !res.data.state[k]);
+        guildConfig[guildId].plugins = dashboardState;
+        guildConfig[guildId].disabled = Object.keys(dashboardState).filter(k => !dashboardState[k]);
+        console.log(`[bot] Synchronized plugin state from dashboard for ${guildId}. Status: ${res.status}, Count: ${Object.keys(dashboardState).length}`);
         await saveGuildConfig();
         return true;
       }
-    } catch (e) { /* fall back to public endpoint */ console.warn('Internal plugin fetch failed, falling back:', e?.message || e); }
+    } catch (e) { /* fall back to public endpoint */ console.warn('[bot] Internal plugin fetch failed, falling back:', e?.message || e); }
 
     // Fall back to the public endpoint (requires dashboard auth; may 401)
     const publicRes = await axios.get(`${DASHBOARD_BASE}/api/server-plugins/${encodeURIComponent(guildId)}`, { timeout: 5000, withCredentials: true });
@@ -448,19 +459,17 @@ function startWebhookListener(client) {
   app.use(express.json());
   app.post('/webhook', verifySecret, handleWebhook);
 
-  // Health endpoint: accessible locally or with valid secret header
-  app.get('/webhook/health', (req, res) => {
-    // Normalize IPv4-mapped IPv6 addresses
-    const ipRaw = (req.ip || (req.connection && req.connection.remoteAddress) || '').replace('::ffff:', '');
-    const x = req.header('x-dashboard-secret') || '';
-    const allowedLocal = ipRaw === '127.0.0.1' || ipRaw === '::1' || x === WEBHOOK_SECRET;
-    if (!allowedLocal) return res.status(403).json({ ok: false, error: 'Forbidden' });
-    return res.json({ ok: true, port: PORT, secretSet: !!process.env.WEBHOOK_SECRET });
-  });
-
   // Public health endpoint (no secret required) for Koyeb/Uptime checks
   app.get('/health', (req, res) => {
     return res.json({ status: 'online', timestamp: Date.now() });
+  });
+
+  // Plugin state endpoint: allows dashboard to fetch truth from bot if dashboard data is lost
+  app.get('/webhook/plugin-state/:guildId', verifySecret, async (req, res) => {
+    const guildId = req.params.guildId;
+    await loadGuildConfig();
+    const config = guildConfig[guildId] || {};
+    return res.json({ guildId, state: config.plugins || {} });
   });
 
   // Presence endpoint: returns cached presences for a guild (requires bot to have GUILD_MEMBERS and GUILD_PRESENCES intents)

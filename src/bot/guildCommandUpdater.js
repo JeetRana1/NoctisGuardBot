@@ -24,69 +24,61 @@ async function updateGuildCommandsUsingClient(client, guildId, disabledCommands)
     }
     const files = collectFiles(commandsPath);
     const cmds = [];
+    const skipped = [];
     for (const filePath of files) {
       try {
         const rel = path.relative(commandsPath, filePath);
         const parts = rel.split(path.sep);
-        // derive plugin name from folder if present
         const pluginName = parts.length > 1 ? parts[0] : 'core';
         const command = require(filePath);
         if (!command || !command.data) continue;
-        // determine effective plugin name
         const effectivePlugin = command.plugin || pluginName;
-        const commandName = command.data && command.data.name;
-        // If the dashboard disabled the plugin (by folder name) or specific command, skip it
-        if (Array.isArray(disabledCommands) && (disabledCommands.includes(effectivePlugin) || disabledCommands.includes(commandName))) continue;
+        const commandName = command.data.name;
+
+        // Check if disabled
+        if (Array.isArray(disabledCommands) && (disabledCommands.includes(effectivePlugin) || disabledCommands.includes(commandName))) {
+          skipped.push(commandName);
+          continue;
+        }
         cmds.push(command.data.toJSON());
       } catch (e) {
         console.warn('Failed to load command file', filePath, e);
       }
     }
 
+    if (!cmds.length) {
+      console.log(`[bot-cmd] No commands to register for guild ${guildId} (all disabled or none found)`);
+    } else {
+      console.log(`[bot-cmd] Registering ${cmds.length} commands for guild ${guildId}. Skipped: ${skipped.length} (${skipped.join(', ') || 'none'})`);
+    }
+
     if (!client.application || !client.application.commands) throw new Error('Client application commands not available');
 
-    // Retry loop to handle rate limits (429) when using the discord.js client
-    let ok = false; let attempt = 0; let backoff = 500; const maxAttempts = 5; let lastErr = null;
-    let lastDetectedRetryAfter = null;
+    // Retry loop to handle rate limits
+    let ok = false; let attempt = 0; let backoff = 1000; const maxAttempts = 3; let lastErr = null;
     while (attempt < maxAttempts) {
       attempt++;
       try {
+        // setting empty array deletes all guild commands
         await client.application.commands.set(cmds, guildId);
-        console.log(`Bot updated guild ${guildId} commands via client with ${cmds.length} commands (attempt ${attempt}).`);
         ok = true; break;
       } catch (e) {
         lastErr = e;
-        // Inspect for rate limit info
-        const raw = e && e.raw ? e.raw : (e && e.response ? e.response : null);
-        let retryAfter = null;
-        try {
-          if (raw && raw.retry_after) retryAfter = raw.retry_after * 1000;
-          else if (raw && raw.headers && raw.headers['retry-after']) retryAfter = parseFloat(raw.headers['retry-after']) * 1000;
-        } catch (ee) {/* ignore parsing */ }
-
         if (e && e.code === 429) {
-          lastDetectedRetryAfter = retryAfter || backoff;
-          if (retryAfter) console.warn(`guildCommandUpdater: rate limited updating ${guildId}, retrying after ${retryAfter}ms`);
-          else console.warn(`guildCommandUpdater: rate limited updating ${guildId}, retrying after ${backoff}ms`);
-          await new Promise(r => setTimeout(r, retryAfter || backoff));
-          backoff *= 2;
+          const wait = e.raw?.retry_after ? (e.raw.retry_after * 1000) : backoff;
+          console.warn(`[bot-cmd] Rate limited for ${guildId}, retrying after ${wait}ms`);
+          await new Promise(r => setTimeout(r, wait));
           continue;
         }
-
-        console.warn('guildCommandUpdater: failed to update via client (attempt ' + attempt + ')', e);
-        // On non-rate-limit errors, do a short backoff and retry a few times
+        console.warn(`[bot-cmd] Failed to update ${guildId} (attempt ${attempt}):`, e.message);
         await new Promise(r => setTimeout(r, backoff));
         backoff *= 2;
       }
     }
 
-    if (!ok) {
-      console.warn('guildCommandUpdater: giving up after attempts for', guildId, lastErr);
-      return { ok: false, error: String(lastErr), rateLimited: !!lastDetectedRetryAfter, retryAfter: lastDetectedRetryAfter };
-    }
-
+    if (!ok) return { ok: false, error: String(lastErr) };
     return { ok: true };
-  } catch (e) { console.warn('guildCommandUpdater: unexpected error', e); return { ok: false, error: String(e) }; }
+  } catch (e) { console.warn('[bot-cmd] Unexpected error', e); return { ok: false, error: String(e) }; }
 }
 
 function queueUpdate(guildId, disabledCommands) {
@@ -99,23 +91,28 @@ function removeQueued(guildId) { const all = readPending(); if (all[guildId]) { 
 
 async function runPending(client) {
   const pending = readPending();
-  for (const guildId of Object.keys(pending)) {
+  const guildIds = Object.keys(pending);
+  if (guildIds.length === 0) return;
+
+  console.log(`[bot-cmd] Processing ${guildIds.length} pending guild updates...`);
+  for (let i = 0; i < guildIds.length; i++) {
+    const guildId = guildIds[i];
     const entry = pending[guildId];
-    // skip if a nextAttemptAt is set in the future
-    if (entry.nextAttemptAt && Date.now() < entry.nextAttemptAt) { console.log('Skipping queued update for', guildId, 'until', new Date(entry.nextAttemptAt).toISOString()); continue; }
-    if (entry.attempts >= 8) { console.warn('Skipping guild command update for', guildId, 'after', entry.attempts, 'attempts'); continue; }
-    console.log('Attempting queued command update for', guildId, 'attempt', (entry.attempts || 0) + 1);
+    if (entry.nextAttemptAt && Date.now() < entry.nextAttemptAt) continue;
+    if (entry.attempts >= 5) continue;
+
     const res = await updateGuildCommandsUsingClient(client, guildId, entry.disabledCommands);
     if (res && res.ok) {
       removeQueued(guildId);
     } else {
       entry.attempts = (entry.attempts || 0) + 1;
-      // if rate limited, schedule next attempt after retryAfter
-      if (res && res.rateLimited && res.retryAfter) {
-        entry.nextAttemptAt = Date.now() + Number(res.retryAfter);
-        console.log('Queued update for', guildId, 'will retry after', new Date(entry.nextAttemptAt).toISOString());
-      }
+      entry.nextAttemptAt = Date.now() + (30000 * entry.attempts); // Exponential-ish backoff
       const all = readPending(); all[guildId] = entry; writePending(all);
+    }
+
+    // Add a 2s delay between different guild updates to prevent event loop blocking and Discord rate limits
+    if (i < guildIds.length - 1) {
+      await new Promise(r => setTimeout(r, 2000));
     }
   }
 }
