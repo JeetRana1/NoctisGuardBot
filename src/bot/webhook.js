@@ -632,8 +632,11 @@ function startWebhookListener(client) {
       botStats.totalMembers = Number(totalMembers);
       botStats.lastUpdated = Date.now();
       saveBotStatsFile().catch(() => { });
-      // Notify dashboard so it can update immediately
-      notifyDashboardEvent({ type: 'stats_update', stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
+
+      let uptimeSeconds = 0; try { if (typeof process.uptime === 'function') uptimeSeconds = Math.floor(process.uptime()); else uptimeSeconds = Math.floor((Date.now() - (botStats.uptimeStart || Date.now())) / 1000); } catch (e) { }
+
+      // Notify dashboard so it can update immediately!
+      notifyDashboardEvent({ type: 'stats_update', stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers, uptimeSeconds } });
       console.log('Recomputed stats:', { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers });
       return res.json({ ok: true, stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
     } catch (e) { console.warn('Recompute stats failed', e); return res.status(500).json({ error: 'Failed to recompute stats' }); }
