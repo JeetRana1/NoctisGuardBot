@@ -548,10 +548,22 @@ function startWebhookListener(client) {
       // compute live if client attached
       let live = { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers, commandsToday: botStats.commandsToday };
       try { if (_client && _client.guilds && _client.guilds.cache) { live.guildCount = _client.guilds.cache.size; let tm = 0; _client.guilds.cache.forEach(g => { tm += (g.memberCount || 0); }); live.totalMembers = tm; } } catch (e) { }
-      // compute uptime hours from uptimeStart
-      const uptimeMs = Date.now() - (botStats.uptimeStart || Date.now());
+
+      // Calculate uptime accurately attempting to match the /uptime command
+      // Prefer process.uptime() from the running node process if this is the bot process
+      let uptimeMs = 0;
+      if (_client && typeof process.uptime === 'function') {
+        uptimeMs = Math.floor(process.uptime() * 1000);
+      } else {
+        // Fallback to stored start time
+        uptimeMs = Date.now() - (botStats.uptimeStart || Date.now());
+      }
+
       const uptimeHours = Math.floor(uptimeMs / (1000 * 60 * 60));
-      const out = { ok: true, stats: Object.assign({}, live, { uptimeHours: uptimeHours, lastUpdated: botStats.lastUpdated }) };
+      // Also return second's for finer detail if needed
+      const uptimeSeconds = Math.floor(uptimeMs / 1000);
+
+      const out = { ok: true, stats: Object.assign({}, live, { uptimeHours, uptimeSeconds, lastUpdated: botStats.lastUpdated }) };
       return res.json(out);
     } catch (e) { console.warn('GET /stats failed', e); return res.status(500).json({ error: 'Failed to get stats' }); }
   });
