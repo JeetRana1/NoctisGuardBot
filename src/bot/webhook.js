@@ -102,7 +102,7 @@ function incrementCommands(by = 1) {
     saveBotStatsFile().catch(() => { });
     // best-effort notify dashboard so UI can show near-real-time stats
     let uptimeSeconds = 0; try { if (typeof process.uptime === 'function') uptimeSeconds = Math.floor(process.uptime()); else uptimeSeconds = Math.floor((Date.now() - (botStats.uptimeStart || Date.now())) / 1000); } catch (e) { }
-    notifyDashboardEvent({ type: 'stats_update', stats: { commandsToday: botStats.commandsToday, guildCount: botStats.guildCount, totalMembers: botStats.totalMembers, uptimeSeconds } });
+    notifyDashboardEvent({ type: 'stats_update', stats: { commandsToday: botStats.commandsToday, guildCount: botStats.guildCount, totalMembers: botStats.totalMembers, uptimeSeconds, history: botStats.history || [] } });
   } catch (e) { console.warn('incrementCommands error', e); }
 }
 
@@ -564,7 +564,7 @@ function startWebhookListener(client) {
       // Also return second's for finer detail if needed
       const uptimeSeconds = Math.floor(uptimeMs / 1000);
 
-      const out = { ok: true, stats: Object.assign({}, live, { uptimeHours, uptimeSeconds, lastUpdated: botStats.lastUpdated }) };
+      const out = { ok: true, stats: Object.assign({}, live, { uptimeHours, uptimeSeconds, lastUpdated: botStats.lastUpdated, history: botStats.history || [] }) };
       return res.json(out);
     } catch (e) { console.warn('GET /stats failed', e); return res.status(500).json({ error: 'Failed to get stats' }); }
   });
@@ -636,7 +636,7 @@ function startWebhookListener(client) {
       let uptimeSeconds = 0; try { if (typeof process.uptime === 'function') uptimeSeconds = Math.floor(process.uptime()); else uptimeSeconds = Math.floor((Date.now() - (botStats.uptimeStart || Date.now())) / 1000); } catch (e) { }
 
       // Notify dashboard so it can update immediately!
-      notifyDashboardEvent({ type: 'stats_update', stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers, uptimeSeconds } });
+      notifyDashboardEvent({ type: 'stats_update', stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers, uptimeSeconds, history: botStats.history || [] } });
       console.log('Recomputed stats:', { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers });
       return res.json({ ok: true, stats: { guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
     } catch (e) { console.warn('Recompute stats failed', e); return res.status(500).json({ error: 'Failed to recompute stats' }); }
