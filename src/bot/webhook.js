@@ -121,7 +121,8 @@ async function getPresencesForGuild(guildId) {
       // We check < 10 to ensure we have at least a few statuses to show
       if (presences.length < 10) {
         try {
-          console.log(`[bot] Cache size low (${presences.length}); performing aggressive fetch for ${guildId}`);
+          // silenced log to reduce console noise unless there's a real issue
+          // console.log(`[bot] Cache size low (${presences.length}); performing aggressive fetch for ${guildId}`);
           const members = await guild.members.fetch({ limit: 100, withPresences: true }).catch(() => null);
           if (members) {
             members.forEach(m => {
@@ -136,9 +137,9 @@ async function getPresencesForGuild(guildId) {
         }
       }
 
-      console.log(`[bot] Gathered ${presences.length} presences for guild ${guildId} (${guild.name}) - Manager size: ${guild.presences ? guild.presences.cache.size : 'N/A'}`);
       if (presences.length === 0) {
-        console.warn(`[bot] No presences found for ${guildId}. Intents checked: Presence=${!!hasPresenceIntent}`);
+        // Only log if we found absolutely nothing, which might indicate an intent issue
+        console.warn(`[bot] No presences found for ${guildId} (Manager size: ${guild.presences ? guild.presences.cache.size : 'N/A'})`);
       }
       return presences;
     } else {
@@ -159,14 +160,12 @@ async function handleWebhook(req, res) {
     // If bot is running and knows about the guild, reconcile runtime state here
     if (_client && _client.guilds && _client.guilds.cache.has(guildId)) {
       const g = _client.guilds.cache.get(guildId);
-      // Queue an update for the guild commands so disabled commands are removed
       try {
         const gcu = require('./guildCommandUpdater');
         gcu.queueUpdate(guildId, guildConfig[guildId].disabled);
-        // try to run pending updates immediately (best-effort)
-        gcu.runPending(_client).catch(e => console.warn('Failed to run pending command updates', e));
+        gcu.runPending(_client).catch(e => console.warn('[webhook] runPending error', e));
       } catch (e) {
-        console.warn('Failed to queue command update for guild', guildId, e);
+        console.warn('[webhook] Failed to trigger command update', guildId, e);
       }
     }
 
@@ -392,16 +391,20 @@ async function reconcileAllGuilds(client) {
     if (!guildConfig[id] || !guildConfig[id].plugins) {
       await fetchPluginStateFromDashboard(id);
     }
-    // Queue an update for the guild commands so disabled commands are removed
     try {
       const gcu = require('./guildCommandUpdater');
       const disabled = (guildConfig[id] && guildConfig[id].disabled) || [];
       gcu.queueUpdate(id, disabled);
-      gcu.runPending(client).catch(e => console.warn('Failed to run pending command updates', e));
     } catch (e) {
       console.warn('Failed to queue command update for guild during reconcile', id, e);
     }
   }
+
+  // Trigger a single batch run after all guilds are queued
+  try {
+    const gcu = require('./guildCommandUpdater');
+    gcu.runPending(client).catch(e => console.warn('[bot] Reconcile runPending error', e));
+  } catch (e) { }
   // Push initial stats to dashboard after reconciliation
   try {
     const liveStats = {

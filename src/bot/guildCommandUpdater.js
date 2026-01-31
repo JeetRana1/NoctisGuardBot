@@ -87,43 +87,60 @@ function queueUpdate(guildId, disabledCommands) {
   writePending(all);
 }
 
-function removeQueued(guildId) { const all = readPending(); if (all[guildId]) { delete all[guildId]; writePending(all); } }
+// Basic stats object for command update tracking (not persisted)
+let isRunning = false;
 
 async function runPending(client) {
-  const pending = readPending();
-  const guildIds = Object.keys(pending);
-  if (guildIds.length === 0) return;
-
-  console.log(`[bot-cmd] Processing ${guildIds.length} pending guild updates...`);
-  for (let i = 0; i < guildIds.length; i++) {
-    const guildId = guildIds[i];
-    const entry = pending[guildId];
-    if (entry.nextAttemptAt && Date.now() < entry.nextAttemptAt) continue;
-    if (entry.attempts >= 5) continue;
-
-    const res = await updateGuildCommandsUsingClient(client, guildId, entry.disabledCommands);
-    if (res && res.ok) {
-      removeQueued(guildId);
-    } else {
-      entry.attempts = (entry.attempts || 0) + 1;
-      entry.nextAttemptAt = Date.now() + (30000 * entry.attempts); // Exponential-ish backoff
-      const all = readPending(); all[guildId] = entry; writePending(all);
+  if (isRunning) return;
+  isRunning = true;
+  try {
+    const pending = readPending();
+    const guildIds = Object.keys(pending);
+    if (!guildIds.length) {
+      isRunning = false;
+      return;
     }
 
-    // Add a 2s delay between different guild updates to prevent event loop blocking and Discord rate limits
-    if (i < guildIds.length - 1) {
-      await new Promise(r => setTimeout(r, 2000));
+    console.log(`[bot-cmd] Starting batch update for ${guildIds.length} guilds...`);
+    for (let i = 0; i < guildIds.length; i++) {
+      const guildId = guildIds[i];
+      const entry = pending[guildId];
+
+      // Skip if marked for future attempt
+      if (entry.nextAttemptAt && Date.now() < entry.nextAttemptAt) continue;
+      if (entry.attempts >= 5) continue;
+
+      const res = await updateGuildCommandsUsingClient(client, guildId, entry.disabledCommands);
+
+      // Reload pending inside loop to avoid overwriting changes from other sources, 
+      // but we are the only one writing for these specific keys usually.
+      const currentPending = readPending();
+      if (res && res.ok) {
+        delete currentPending[guildId];
+      } else {
+        entry.attempts = (entry.attempts || 0) + 1;
+        entry.nextAttemptAt = Date.now() + (30000 * entry.attempts);
+        currentPending[guildId] = entry;
+      }
+      writePending(currentPending);
+
+      if (i < guildIds.length - 1) {
+        await new Promise(r => setTimeout(r, 2000));
+      }
     }
+  } catch (e) {
+    console.warn('[bot-cmd] Error in runPending loop:', e);
+  } finally {
+    isRunning = false;
   }
 }
 
 function init(client) {
   ensureFile();
   // attempt on startup
-  runPending(client).catch(e => console.warn('runPending error', e));
-  // watch for file changes
-  const watcher = chokidar.watch(pendingFile, { ignoreInitial: true });
-  watcher.on('change', () => { runPending(client).catch(e => console.warn('runPending error', e)); });
+  setTimeout(() => {
+    runPending(client).catch(e => console.warn('[bot-cmd] runPending startup error', e));
+  }, 5000);
 }
 
 module.exports = { init, queueUpdate, runPending };
