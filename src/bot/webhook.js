@@ -10,7 +10,7 @@ const axios = require('axios');
 // Use process.env.PORT as the primary source (standard for Koyeb/Render/Cloud hosts)
 const PORT = process.env.PORT || process.env.BOT_WEBHOOK_PORT || 8000;
 console.log(`[bot] Webhook server listening for health checks and dashboard on port ${PORT}`);
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'change-me-to-a-secret';
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || process.env.BOT_NOTIFY_SECRET || 'change-me-to-a-secret';
 const DASHBOARD_BASE = process.env.DASHBOARD_BASE || 'https://noctis-guard.vercel.app';
 const PLUGINS_FILE = path.join(__dirname, '..', '..', 'data', 'bot-guild-config.json');
 const ACTIVITY_FILE = path.join(__dirname, '..', '..', 'data', 'bot-activity.json');
@@ -27,6 +27,7 @@ async function appendActivity(entry) {
     arr.unshift(entry);
     if (arr.length > 200) arr.splice(200);
     await saveActivityFile(arr);
+    console.log(`[bot] Activity recorded: ${entry.type} for guild ${entry.guildId} (${entry.description || entry.type})`);
   } catch (e) { console.warn('appendActivity failed', e); }
 }
 
@@ -168,27 +169,30 @@ async function getPresencesForGuild(guildId) {
 async function handleWebhook(req, res) {
   const { type, guildId, state, user, pluginId, config, action } = req.body || {};
   if (type === 'plugin_update' && guildId) {
-    guildConfig[guildId] = guildConfig[guildId] || {};
-    guildConfig[guildId].plugins = state || {};
-    guildConfig[guildId].disabled = Object.keys(state || {}).filter(k => !state[k]);
-    await saveGuildConfig();
-
-    // Record activity by comparing against previous state
-    const prevPlugins = (guildConfig[guildId] && guildConfig[guildId].plugins) || {};
+    // Record activity by comparing against PREVIOUS state before we overwrite it
+    const prevPlugins = (guildConfig[guildId] && guildConfig[guildId].plugins) ? { ...guildConfig[guildId].plugins } : {};
     const newPlugins = state || {};
 
-    // Find what changed
+    guildConfig[guildId] = guildConfig[guildId] || {};
+    guildConfig[guildId].plugins = newPlugins;
+    guildConfig[guildId].disabled = Object.keys(newPlugins).filter(k => !newPlugins[k]);
+    await saveGuildConfig();
+
+    // Find what changed and record activity
     const allKeys = new Set([...Object.keys(prevPlugins), ...Object.keys(newPlugins)]);
     for (const pid of allKeys) {
+      // Logic: if key didn't exist before, it was enabled by default (true). 
+      // If it exists now and is false, it's newly disabled.
       const before = pid in prevPlugins ? !!prevPlugins[pid] : true;
       const after = pid in newPlugins ? !!newPlugins[pid] : true;
+
       if (before !== after) {
         await appendActivity({
           guildId,
           type: 'plugin_update',
           pluginId: pid,
-          enabled: after,
-          description: `${pid} ${after ? 'enabled' : 'disabled'}`,
+          enabled: after, // Explicitly boolean
+          description: `${pid.charAt(0).toUpperCase() + pid.slice(1)} ${after ? 'enabled' : 'disabled'}`,
           user,
           ts: Date.now()
         });
@@ -219,10 +223,10 @@ async function handleWebhook(req, res) {
     const cfg = req.body.config || {};
     guildConfig[guildId] = guildConfig[guildId] || {};
     guildConfig[guildId].config = guildConfig[guildId].config || {};
-    guildConfig[guildId].config[pId] = cfg;
+    guildConfig[guildId].config[pluginId] = cfg;
     await saveGuildConfig();
 
-    await appendActivity({ guildId, type: 'plugin_config', pluginId: pId, description: `Configuration updated`, user, ts: Date.now() });
+    await appendActivity({ guildId, type: 'plugin_config', pluginId: pluginId, description: `${pluginId.charAt(0).toUpperCase() + pluginId.slice(1)} configuration updated`, user, ts: Date.now() });
 
     // Apply configuration to runtime managers if available
     try {
@@ -521,8 +525,10 @@ function startWebhookListener(client) {
   // Activity endpoint: returns recent activities for a guild
   app.get('/webhook/activity/:guildId', verifySecret, async (req, res) => {
     const guildId = req.params.guildId;
+    console.log(`[bot] Activity request received for guild ${guildId}`);
     const all = await loadActivityFile();
-    const filtered = all.filter(a => a.guildId === guildId).slice(0, 50);
+    const filtered = all.filter(a => String(a.guildId) === String(guildId)).slice(0, 50);
+    console.log(`[bot] Returning ${filtered.length} activity entries for ${guildId}`);
     return res.json({ guildId, activity: filtered });
   });
 
