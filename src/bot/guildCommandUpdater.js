@@ -94,40 +94,50 @@ async function runPending(client) {
   if (isRunning) return;
   isRunning = true;
   try {
-    const pending = readPending();
-    const guildIds = Object.keys(pending);
-    if (!guildIds.length) {
+    let pending = readPending();
+    let guildIds = Object.keys(pending);
+
+    if (guildIds.length === 0) {
       isRunning = false;
       return;
     }
 
     console.log(`[bot-cmd] Starting batch update for ${guildIds.length} guilds...`);
-    for (let i = 0; i < guildIds.length; i++) {
-      const guildId = guildIds[i];
+
+    // We use a while loop and fresh state read to catch any new guilds added while we were processing
+    while (guildIds.length > 0) {
+      const guildId = guildIds[0];
       const entry = pending[guildId];
 
-      // Skip if marked for future attempt
-      if (entry.nextAttemptAt && Date.now() < entry.nextAttemptAt) continue;
-      if (entry.attempts >= 5) continue;
+      if (!entry.nextAttemptAt || Date.now() >= entry.nextAttemptAt) {
+        if ((entry.attempts || 0) < 5) {
+          const res = await updateGuildCommandsUsingClient(client, guildId, entry.disabledCommands);
 
-      const res = await updateGuildCommandsUsingClient(client, guildId, entry.disabledCommands);
-
-      // Reload pending inside loop to avoid overwriting changes from other sources, 
-      // but we are the only one writing for these specific keys usually.
-      const currentPending = readPending();
-      if (res && res.ok) {
-        delete currentPending[guildId];
-      } else {
-        entry.attempts = (entry.attempts || 0) + 1;
-        entry.nextAttemptAt = Date.now() + (30000 * entry.attempts);
-        currentPending[guildId] = entry;
+          let updatedPending = readPending();
+          if (res && res.ok) {
+            delete updatedPending[guildId];
+          } else {
+            entry.attempts = (entry.attempts || 0) + 1;
+            entry.nextAttemptAt = Date.now() + (30000 * entry.attempts);
+            updatedPending[guildId] = entry;
+          }
+          writePending(updatedPending);
+        }
       }
-      writePending(currentPending);
 
-      if (i < guildIds.length - 1) {
-        await new Promise(r => setTimeout(r, 2000));
+      // Check for new pending items that might have arrived
+      pending = readPending();
+      guildIds = Object.keys(pending).filter(id => {
+        const e = pending[id];
+        return !e.nextAttemptAt || Date.now() >= e.nextAttemptAt;
+      });
+
+      // Simple 1s delay if there's more to do, to stay safe from Discord's broad rate limits
+      if (guildIds.length > 0) {
+        await new Promise(r => setTimeout(r, 1000));
       }
     }
+    console.log('[bot-cmd] Batch update complete.');
   } catch (e) {
     console.warn('[bot-cmd] Error in runPending loop:', e);
   } finally {

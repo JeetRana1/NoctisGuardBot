@@ -13,6 +13,22 @@ console.log(`[bot] Webhook server listening for health checks and dashboard on p
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'change-me-to-a-secret';
 const DASHBOARD_BASE = process.env.DASHBOARD_BASE || 'https://noctis-guard.vercel.app';
 const PLUGINS_FILE = path.join(__dirname, '..', '..', 'data', 'bot-guild-config.json');
+const ACTIVITY_FILE = path.join(__dirname, '..', '..', 'data', 'bot-activity.json');
+
+async function loadActivityFile() {
+  try { const raw = await fs.readFile(ACTIVITY_FILE, 'utf8'); return JSON.parse(raw || '[]'); } catch (e) { return []; }
+}
+async function saveActivityFile(arr) {
+  try { await fs.mkdir(path.dirname(ACTIVITY_FILE), { recursive: true }); await fs.writeFile(ACTIVITY_FILE, JSON.stringify(arr, null, 2)); } catch (e) { console.warn('Failed to save activity file', e); }
+}
+async function appendActivity(entry) {
+  try {
+    const arr = await loadActivityFile();
+    arr.unshift(entry);
+    if (arr.length > 200) arr.splice(200);
+    await saveActivityFile(arr);
+  } catch (e) { console.warn('appendActivity failed', e); }
+}
 
 // Simple in-memory config (persisted to disk)
 let guildConfig = {};
@@ -150,12 +166,21 @@ async function getPresencesForGuild(guildId) {
 }
 
 async function handleWebhook(req, res) {
-  const { type, guildId, state } = req.body || {};
+  const { type, guildId, state, user, pluginId, config, action } = req.body || {};
   if (type === 'plugin_update' && guildId) {
     guildConfig[guildId] = guildConfig[guildId] || {};
     guildConfig[guildId].plugins = state || {};
     guildConfig[guildId].disabled = Object.keys(state || {}).filter(k => !state[k]);
     await saveGuildConfig();
+
+    // Record activity
+    const disabledArr = guildConfig[guildId].disabled;
+    const enabledState = state || {};
+    for (const pid of Object.keys(enabledState)) {
+      // we only log the specific change if we had a previous state, or just log all if first time
+      // for now, a simple 'Updated configuration' is enough if it's a batch
+    }
+    await appendActivity({ guildId, type: 'plugin_update', pluginId: 'System', description: `Plugins updated`, user, ts: Date.now() });
 
     // If bot is running and knows about the guild, reconcile runtime state here
     if (_client && _client.guilds && _client.guilds.cache.has(guildId)) {
@@ -181,8 +206,10 @@ async function handleWebhook(req, res) {
     const cfg = req.body.config || {};
     guildConfig[guildId] = guildConfig[guildId] || {};
     guildConfig[guildId].config = guildConfig[guildId].config || {};
-    guildConfig[guildId].config[pluginId] = cfg;
+    guildConfig[guildId].config[pId] = cfg;
     await saveGuildConfig();
+
+    await appendActivity({ guildId, type: 'plugin_config', pluginId: pId, description: `Configuration updated`, user, ts: Date.now() });
 
     // Apply configuration to runtime managers if available
     try {
@@ -250,6 +277,7 @@ async function handleWebhook(req, res) {
         if (!gid) return res.status(400).json({ error: 'Missing giveawayId' });
         try {
           const winners = await giveaways.rerollGiveaway(gid);
+          await appendActivity({ guildId, type: 'giveaway_reroll', pluginId: 'giveaway', description: `Giveaway rerolled (ID: ${gid})`, user, ts: Date.now() });
           return res.json({ ok: true, winners });
         } catch (e) { console.warn('Reroll failed', e); return res.status(500).json({ error: 'Reroll failed' }); }
       }
@@ -263,9 +291,11 @@ async function handleWebhook(req, res) {
     const payload = req.body.payload || {};
     const testType = payload.testType || 'welcome';
     const userId = payload.userId || null;
-    console.log('Webhook plugin_test received for guild', guildId, 'plugin', pluginId, 'testType', testType, 'payload:', payload);
-
+    console.log(`[bot] Webhook plugin_test received for guild ${guildId} plugin ${pluginId} testType ${testType} user ${user ? user.username : 'unknown'}`);
     let didSend = false;
+
+    await appendActivity({ guildId, type: 'plugin_test', pluginId, description: `Test executed: ${testType}`, user, ts: Date.now() });
+
     try {
       // welcome / bye tests
       const welcome = require('./welcomeManager');
@@ -473,6 +503,14 @@ function startWebhookListener(client) {
     await loadGuildConfig();
     const config = guildConfig[guildId] || {};
     return res.json({ guildId, state: config.plugins || {} });
+  });
+
+  // Activity endpoint: returns recent activities for a guild
+  app.get('/webhook/activity/:guildId', verifySecret, async (req, res) => {
+    const guildId = req.params.guildId;
+    const all = await loadActivityFile();
+    const filtered = all.filter(a => a.guildId === guildId).slice(0, 50);
+    return res.json({ guildId, activity: filtered });
   });
 
   // Presence endpoint: returns cached presences for a guild (requires bot to have GUILD_MEMBERS and GUILD_PRESENCES intents)
