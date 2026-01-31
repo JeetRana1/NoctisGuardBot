@@ -1,10 +1,18 @@
-const { Events } = require('discord.js');
+const { Events, ActivityType } = require('discord.js');
 
 module.exports = {
   name: Events.ClientReady,
   once: true,
   execute(client) {
     console.log(`Ready! Logged in as ${client.user.tag}`);
+
+    // Set bot presence to show the Vercel URL
+    try {
+      client.user.setActivity('noctis-guard.vercel.app', { type: ActivityType.Watching });
+      console.log('[bot] Presence set to Watching noctis-guard.vercel.app');
+    } catch (e) {
+      console.warn('[bot] Failed to set presence:', e);
+    }
     try {
       const giveaways = require('../giveaways');
       giveaways.init(client);

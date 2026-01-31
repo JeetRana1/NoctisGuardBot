@@ -173,14 +173,27 @@ async function handleWebhook(req, res) {
     guildConfig[guildId].disabled = Object.keys(state || {}).filter(k => !state[k]);
     await saveGuildConfig();
 
-    // Record activity
-    const disabledArr = guildConfig[guildId].disabled;
-    const enabledState = state || {};
-    for (const pid of Object.keys(enabledState)) {
-      // we only log the specific change if we had a previous state, or just log all if first time
-      // for now, a simple 'Updated configuration' is enough if it's a batch
+    // Record activity by comparing against previous state
+    const prevPlugins = (guildConfig[guildId] && guildConfig[guildId].plugins) || {};
+    const newPlugins = state || {};
+
+    // Find what changed
+    const allKeys = new Set([...Object.keys(prevPlugins), ...Object.keys(newPlugins)]);
+    for (const pid of allKeys) {
+      const before = pid in prevPlugins ? !!prevPlugins[pid] : true;
+      const after = pid in newPlugins ? !!newPlugins[pid] : true;
+      if (before !== after) {
+        await appendActivity({
+          guildId,
+          type: 'plugin_update',
+          pluginId: pid,
+          enabled: after,
+          description: `${pid} ${after ? 'enabled' : 'disabled'}`,
+          user,
+          ts: Date.now()
+        });
+      }
     }
-    await appendActivity({ guildId, type: 'plugin_update', pluginId: 'System', description: `Plugins updated`, user, ts: Date.now() });
 
     // If bot is running and knows about the guild, reconcile runtime state here
     if (_client && _client.guilds && _client.guilds.cache.has(guildId)) {
