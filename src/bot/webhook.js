@@ -101,7 +101,8 @@ function incrementCommands(by = 1) {
     if (botStats.history.length > 48) botStats.history.shift();
     saveBotStatsFile().catch(() => { });
     // best-effort notify dashboard so UI can show near-real-time stats
-    notifyDashboardEvent({ type: 'stats_update', stats: { commandsToday: botStats.commandsToday, guildCount: botStats.guildCount, totalMembers: botStats.totalMembers } });
+    let uptimeSeconds = 0; try { if (typeof process.uptime === 'function') uptimeSeconds = Math.floor(process.uptime()); else uptimeSeconds = Math.floor((Date.now() - (botStats.uptimeStart || Date.now())) / 1000); } catch (e) { }
+    notifyDashboardEvent({ type: 'stats_update', stats: { commandsToday: botStats.commandsToday, guildCount: botStats.guildCount, totalMembers: botStats.totalMembers, uptimeSeconds } });
   } catch (e) { console.warn('incrementCommands error', e); }
 }
 
