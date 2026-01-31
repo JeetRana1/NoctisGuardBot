@@ -670,4 +670,4 @@ async function getGuildPlugins(guildId) {
   return null;
 }
 
-module.exports = { startWebhookListener, fetchPluginStateFromDashboard, reconcileAllGuilds, guildConfig, isCommandEnabled, setPluginState, getGuildPlugins, incrementCommands };
+module.exports = { startWebhookListener, fetchPluginStateFromDashboard, reconcileAllGuilds, guildConfig, isCommandEnabled, setPluginState, getGuildPlugins, incrementCommands, notifyDashboardEvent, botStats };

@@ -10,7 +10,7 @@ module.exports = {
     // dedupe interactions in-memory to avoid accidental double-handles
     if (processedInteractions.has(interaction.id)) return;
     processedInteractions.add(interaction.id);
-    setTimeout(()=>processedInteractions.delete(interaction.id), 30_000);
+    setTimeout(() => processedInteractions.delete(interaction.id), 30_000);
 
     const command = interaction.client.commands.get(interaction.commandName);
 
@@ -23,9 +23,9 @@ module.exports = {
     try {
       const webhook = require('../webhook');
       const pluginName = command.plugin || (command.data && command.data.name) || interaction.commandName;
-      if (interaction.guild && !webhook.isCommandEnabled(interaction.guild.id, pluginName)){
+      if (interaction.guild && !webhook.isCommandEnabled(interaction.guild.id, pluginName)) {
         const { EmbedBuilder } = require('discord.js');
-        await interaction.reply({ embeds: [ new EmbedBuilder().setTitle('Command disabled').setDescription('That command is disabled on this server.').setColor(0xF1C40F) ], ephemeral: true }).catch(()=>{});
+        await interaction.reply({ embeds: [new EmbedBuilder().setTitle('Command disabled').setDescription('That command is disabled on this server.').setColor(0xF1C40F)], ephemeral: true }).catch(() => { });
         return;
       }
     } catch (e) { /* non-fatal if webhook module not available */ }
@@ -33,6 +33,14 @@ module.exports = {
 
     try {
       await command.execute(interaction);
+
+      // Increment command stats
+      try {
+        const webhook = require('../webhook');
+        webhook.incrementCommands();
+        // Fire-and-forget stat update to dashboard so sparkline updates live
+        webhook.notifyDashboardEvent({ type: 'stats_update', stats: { commandsToday: webhook.botStats.commandsToday } });
+      } catch (e) { console.warn('Failed to increment command stats', e); }
 
       // Log admin-restricted command usage automatically (if the command defines default_member_permissions)
       try {
@@ -49,9 +57,9 @@ module.exports = {
       const { EmbedBuilder } = require('discord.js');
       const embed = new EmbedBuilder().setTitle('Error').setDescription('There was an error while executing this command!').setColor(0xE74C3C);
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ embeds: [embed], flags: 64 }).catch(()=>{});
+        await interaction.followUp({ embeds: [embed], flags: 64 }).catch(() => { });
       } else {
-        await interaction.reply({ embeds: [embed], flags: 64 }).catch(()=>{});
+        await interaction.reply({ embeds: [embed], flags: 64 }).catch(() => { });
       }
     }
   },
